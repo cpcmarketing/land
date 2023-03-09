@@ -243,6 +243,7 @@ module Land
       visit.referer_id    = referer.try(:id)
       visit.user_agent_id = user_agent.id
       visit.ip_address    = remote_ip
+      visit.raw_query_string = request.query_string
       visit.save!
 
       @visit_id = @visit.id
