@@ -250,7 +250,7 @@ module Land
     end
 
     def new_visit?
-      @visit_id.nil? || referer_changed? || attribution_changed? || user_agent_changed? || visit_stale?
+      @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
     end
 
     def external_referer?
