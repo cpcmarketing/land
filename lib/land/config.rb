@@ -2,6 +2,7 @@
 
 module Land
   class Config < HashWithIndifferentAccess
+    ALLOWED_NEW_VISIT_REASONS = %w[referer_changed? attribution_changed? user_agent_changed? visit_stale?]
     attr_reader :enabled, :secure_cookie
 
     attr_writer :blank_user_agent_string
@@ -57,6 +58,16 @@ module Land
       raise ArgumentError, "must be positive" unless value.positive?
 
       @visit_timeout = value
+    end
+
+    def new_visit_reasons
+      @new_visit_reasons ||= %w[referer_changed? attribution_changed?  user_agent_changed? visit_stale?]
+    end
+
+    def new_visit_reasons=(value)
+      raise ArgumentError, "must be an array of strings" unless value.is_a?(Array) && value.all? { |v| v.is_a?(String) }
+      raise ArgumentError, "must be a subset of #{ALLOWED_NEW_VISIT_REASONS}" unless (value - ALLOWED_NEW_VISIT_REASONS).empty?
+      @new_visit_reasons = value
     end
   end
 end
