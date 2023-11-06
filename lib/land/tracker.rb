@@ -28,7 +28,7 @@ module Land
       'brand'          => %w[brand brand_name],
       'campaign'       => %w[campaign campaign_name utm_campaign ovcampgid ysmcampgid cn],
       'campaign_identifier' => %w[campaign_identifier campaignidentifier campaignid campaign_id cid utm_campaign_id],
-      'click_id'       => %w[click_id clickid dclid fbclid gclid gclsrc msclkid zanpid],
+      'click_id'       => %w[click_id clickid dclid fbclid gclid gclsrc msclkid zanpid ttclid ttp],
       'content'        => %w[content ad_name utm_content cc],
       'content_identifier' => %w[content_identifier contentidentifier contentid content_id cntid utm_content_id],
       'creative'       => %w[creative adid ovadid],
