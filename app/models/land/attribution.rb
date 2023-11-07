@@ -28,6 +28,8 @@ module Land
       search_term
       source
       subsource
+      tiktok_click_id
+      tiktok_pixel_cookie_id
       target
     ]
 
