@@ -28,24 +28,25 @@ module Land
         current_time = Time.now
 
         @pageview = Pageview.create do |p|
-          p.path          = request.path.to_s
+          p.path                         = request.path.to_s
 
-          p.http_method   = request.method
-          p.mime_type     = request.media_type || request.format.to_s
-          p.query_string  = untracked_params.to_query
-          p.request_id    = request.uuid
+          p.http_method                 = request.method
+          p.mime_type                   = request.media_type || request.format.to_s
+          p.query_string                = untracked_params.to_query
+          p.request_id                  = request.uuid
 
-          p.click_id      = tracking_params['click_id']
+          p.click_id                    = tracking_params['click_id']
+          p.tiktok_pixel_cookie_id      = tracking_params['tiktok_pixel_cookie_id']
 
-          p.http_status   = status || response.status
+          p.http_status                 = status || response.status
 
-          p.visit_id      = @visit_id
+          p.visit_id                    = @visit_id
 
-          p.created_at    = current_time
-          p.response_time = (current_time - @start_time) * 1000
+          p.created_at                  = current_time
+          p.response_time               = (current_time - @start_time) * 1000
         end
       end
-      
+
       def save
         record_pageview
 
