@@ -20,35 +20,36 @@ module Land
     #
     # https://strackr.com/subid
     TRACKING_PARAMS = {
-      'ad_group'       => %w[ad_group adgroup adset_name ovadgrpid ysmadgrpid],
-      'ad_type'        => %w[ad_type adtype],
-      'affiliate'      => %w[affiliate aff affid],
-      'app'            => %w[aid],
-      'bid_match_type' => %w[bidmatchtype bid_match_type bmt],
-      'brand'          => %w[brand brand_name],
-      'campaign'       => %w[campaign campaign_name utm_campaign ovcampgid ysmcampgid cn],
-      'campaign_identifier' => %w[campaign_identifier campaignidentifier campaignid campaign_id cid utm_campaign_id],
-      'click_id'       => %w[click_id clickid dclid fbclid gclid gclsrc msclkid zanpid ttclid ttp],
-      'content'        => %w[content ad_name utm_content cc],
-      'content_identifier' => %w[content_identifier contentidentifier contentid content_id cntid utm_content_id],
-      'creative'       => %w[creative adid ovadid],
-      'device_type'    => %w[device_type devicetype device],
-      'experiment'     => %w[experiment aceid],
-      'keyword'        => %w[keyword kw utm_term ovkey ysmkey],
-      'match_type'     => %w[match_type matchtype match ovmtc ysmmtc],
-      'medium'         => %w[medium utm_medium cm],
-      'medium_identifier' => %w[medium_identifier mediumidentifier mediumid medium_id mid utm_medium_id],
-      'network'        => %w[network anid],
-      'placement'      => %w[placement],
-      'position'       => %w[position adposition ad_position],
-      'search_term'    => %w[search_term searchterm q querystring ovraw ysmraw],
-      'source'         => %w[source utm_source cs],
-      'subsource'      => %w[subsource subid sid effi_id customid afftrack pubref argsite fobs epi ws u1],
-      'target'         => %w[target]
+      'ad_group'               => %w[ad_group adgroup adset_name ovadgrpid ysmadgrpid],
+      'ad_type'                => %w[ad_type adtype],
+      'affiliate'              => %w[affiliate aff affid],
+      'app'                    => %w[aid],
+      'bid_match_type'         => %w[bidmatchtype bid_match_type bmt],
+      'brand'                  => %w[brand brand_name],
+      'campaign'               => %w[campaign campaign_name utm_campaign ovcampgid ysmcampgid cn],
+      'campaign_identifier'    => %w[campaign_identifier campaignidentifier campaignid campaign_id cid utm_campaign_id],
+      'click_id'               => %w[click_id clickid dclid fbclid gclid gclsrc msclkid zanpid ttclid],
+      'content'                => %w[content ad_name utm_content cc],
+      'content_identifier'     => %w[content_identifier contentidentifier contentid content_id cntid utm_content_id],
+      'creative'               => %w[creative adid ovadid],
+      'device_type'            => %w[device_type devicetype device],
+      'experiment'             => %w[experiment aceid],
+      'keyword'                => %w[keyword kw utm_term ovkey ysmkey],
+      'match_type'             => %w[match_type matchtype match ovmtc ysmmtc],
+      'medium'                 => %w[medium utm_medium cm],
+      'medium_identifier'      => %w[medium_identifier mediumidentifier mediumid medium_id mid utm_medium_id],
+      'network'                => %w[network anid],
+      'placement'              => %w[placement],
+      'position'               => %w[position adposition ad_position],
+      'search_term'            => %w[search_term searchterm q querystring ovraw ysmraw],
+      'source'                 => %w[source utm_source cs],
+      'subsource'              => %w[subsource subid sid effi_id customid afftrack pubref argsite fobs epi ws u1],
+      'target'                 => %w[target],
+      'tiktok_pixel_cookie_id' => %w[ttp]
     }.freeze
 
     TRACKING_KEYS    = TRACKING_PARAMS.values.flatten.freeze
-    ATTRIBUTION_KEYS = TRACKING_PARAMS.except('click_id').keys
+    ATTRIBUTION_KEYS = TRACKING_PARAMS.except('click_id', 'tiktok_pixel_cookie_id').keys
 
     TRACKING_PARAMS_TRANSFORM = {
       'ad_type'        => { 'pe'  => 'product_extensions',
