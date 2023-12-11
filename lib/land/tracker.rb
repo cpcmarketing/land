@@ -241,13 +241,18 @@ module Land
       @visit = Visit.new
       visit.attribution   = attribution
       visit.cookie_id     = @cookie_id
-      visit.referer_id    = referer.try(:id)
+      visit.referer_id    = referer&.id
       visit.user_agent_id = user_agent.id
       visit.ip_address    = remote_ip
+      visit.domain_id     = request_domain&.id
       visit.raw_query_string = request.query_string
       visit.save!
 
       @visit_id = @visit.id
+    end
+
+    def request_domain
+      Domain[request.host]
     end
 
     def new_visit?
