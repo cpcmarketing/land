@@ -5,5 +5,6 @@ module Land
     lookup_by :domain, cache: 50, find_or_create: true, allow_blank: true
 
     has_many :referers
+    has_many :visits
   end
 end
