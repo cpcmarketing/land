@@ -24,24 +24,19 @@ module Land
         @referer_hash     = hash[KEYS[:referer_hash]]
       end
 
-      def record_pageview
+      def record_pageview(method: nil, path: nil)
         current_time = Time.now
 
         @pageview = Pageview.create do |p|
-          p.path                         = request.path.to_s
-
-          p.http_method                 = request.method
+          p.path                        = path ||request.path.to_s
+          p.http_method                 = method || request.method
           p.mime_type                   = request.media_type || request.format.to_s
           p.query_string                = untracked_params.to_query
           p.request_id                  = request.uuid
-
           p.click_id                    = tracking_params['click_id']
           p.tiktok_pixel_cookie_id      = tracking_params['tiktok_pixel_cookie_id']
-
           p.http_status                 = status || response.status
-
           p.visit_id                    = @visit_id
-
           p.created_at                  = current_time
           p.response_time               = (current_time - @start_time) * 1000
         end
@@ -50,14 +45,17 @@ module Land
       def save
         record_pageview
 
-        events.each { |e| e.pageview = pageview; e.save! }
+        events.each do |e|
+          e.pageview = pageview
+          e.save!
+        end
 
         session[:land] = {
-          KEYS[:visit_id]         => @visit_id,
-          KEYS[:visit_time]       => Time.current,
-          KEYS[:user_agent_hash]  => user_agent_hash,
+          KEYS[:visit_id] => @visit_id,
+          KEYS[:visit_time] => Time.current,
+          KEYS[:user_agent_hash] => user_agent_hash,
           KEYS[:attribution_hash] => attribution_changed? ? attribution_hash : @attribution_hash,
-          KEYS[:referer_hash]     => referer_changed?     ? referer_hash     : @referer_hash
+          KEYS[:referer_hash] => referer_changed? ? referer_hash : @referer_hash
         }
       end
 
