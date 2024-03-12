@@ -112,13 +112,17 @@ module Land
         # override
         type = 'user' if controller.request.query_parameters.with_indifferent_access.slice(*TRACKING_KEYS).any?
 
+        # match on versioned APIs, which server the frontend
+        type = 'api' if controller.request.path =~ %r{^/api/v}
+
         "Land::Trackers::#{type.classify}Tracker".constantize.new(controller)
       end
     end
 
     def initialize(controller)
       # Allow subclasses to super from initialize
-      fail NotImplementedError, "You must subclass Land::Tracker" if self.class == Tracker
+      raise NotImplementedError, 'You must subclass Land::Tracker' if self.class == Tracker
+
       @controller = controller
       @events     = []
       @start_time = Time.now
