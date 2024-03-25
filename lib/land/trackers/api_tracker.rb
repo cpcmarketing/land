@@ -33,7 +33,7 @@ module Land
 
         # Create a new cookie if it is not present, if it doesn't save then it already
         # exists. If the format is invalid Land::Tracker will validate
-        Cookie.new.tap { |c| c.id = @cookie_id }.save
+        Cookie.find_or_create_by(cookie_id: @cookie_id)
 
         @visit_id         = request.params['visit_id']
         @last_visit_time  = nil
