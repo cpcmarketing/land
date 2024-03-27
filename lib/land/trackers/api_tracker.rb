@@ -22,7 +22,7 @@ module Land
         visit.user_agent_id = user_agent.id
         visit.ip_address    = remote_ip
         visit.domain_id     = request_domain&.id
-        visit.raw_query_string = request.query_string
+        visit.raw_query_string = raw_query_string
         visit.save
 
         @visit_id
@@ -46,6 +46,10 @@ module Land
       # the application it is used in directly the visit_id does not exist
       def record_pageview(method: nil, path: nil)
         current_time = Time.now
+
+        # Race conditions can cause a visit to be created before the pageview is sent in.
+        # Attempt to update the visit.raw_query_string when the pageview is being recorded
+        update_visit_raw_query_string
 
         @pageview = Pageview.create do |p|
           p.path = path || request.path.to_s
@@ -84,6 +88,19 @@ module Land
         rescue ActiveRecord::RecordNotUnique
           retry
         end
+      end
+
+      def update_visit_raw_query_string
+        return unless raw_query_string.present?
+
+        visit = Visit.find(@visit_id)
+        visit.update(raw_query_string:) unless visit.raw_query_string.present?
+      end
+
+      def raw_query_string
+        request.params['page_view_query_string'] \
+        || request.params.dig('tracking','page_view_query_string') \
+        || request.query_string
       end
     end
   end
