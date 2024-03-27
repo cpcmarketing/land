@@ -1,20 +1,21 @@
 # frozen_string_literal: true
 
-require "land/version"
-require "land/engine"
+require 'land/version'
+require 'land/engine'
 
-require "lookup_by"
+require 'lookup_by'
 
 module Land
   class Error < StandardError; end
 
-  autoload :Action,  "land/action"
-  autoload :Config,  "land/config"
-  autoload :Tracker, "land/tracker"
+  autoload :Action,  'land/action'
+  autoload :Config,  'land/config'
+  autoload :Tracker, 'land/tracker'
 
   module Trackers
-    autoload :NoopTracker, "land/trackers/noop_tracker"
-    autoload :UserTracker, "land/trackers/user_tracker"
+    autoload :NoopTracker, 'land/trackers/noop_tracker'
+    autoload :UserTracker, 'land/trackers/user_tracker'
+    autoload :ApiTracker, 'land/trackers/api_tracker'
   end
 
   def self.config
