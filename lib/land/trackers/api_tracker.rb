@@ -9,6 +9,12 @@ module Land
         load
         cookie
         record_visit
+
+        # Api request race conditions mean that the visit may be created on a call
+        # that is not the visit call. Query strings are passed from the front end
+        # visit API call. If the visit is created on a different call, the query
+        # string will be updated whenever the visit API call is completed.
+        maybe_update_visit_attribution
       end
 
       # Overriding record_visit method as we set the visit id from the API param,
@@ -22,7 +28,7 @@ module Land
         visit.user_agent_id = user_agent.id
         visit.ip_address    = remote_ip
         visit.domain_id     = request_domain&.id
-        visit.raw_query_string = raw_query_string
+        visit.raw_query_string = request.query_string
         visit.save
 
         @visit_id
@@ -47,9 +53,6 @@ module Land
       def record_pageview(method: nil, path: nil)
         current_time = Time.now
 
-        # Race conditions can cause a visit to be created before the pageview is sent in.
-        # Attempt to update the visit.raw_query_string when the pageview is being recorded
-        update_visit_raw_query_string
 
         @pageview = Pageview.create do |p|
           p.path = path || request.path.to_s
@@ -90,17 +93,20 @@ module Land
         end
       end
 
-      def update_visit_raw_query_string
-        return unless raw_query_string.present?
+      def maybe_update_visit_attribution
+        return unless attribution?
 
         visit = Visit.find(@visit_id)
-        visit.update(raw_query_string:) unless visit.raw_query_string.present?
+        visit.update(raw_query_string: request.query_string) unless visit.raw_query_string.present?
+        visit.update(attribution:) unless attribution_values_present?(visit)
       end
 
-      def raw_query_string
-        request.params['page_view_query_string'] \
-        || request.params.dig('tracking','page_view_query_string') \
-        || request.query_string
+      def attribution_values_present?(visit)
+        visit.attribution
+             .attributes
+             .reject {|k, _v| ['attribution_id', 'created_at'].include?(k) }
+             .values
+             .any?
       end
     end
   end
