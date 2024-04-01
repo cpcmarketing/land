@@ -19,17 +19,18 @@ module Land
 
       # Overriding record_visit method as we set the visit id from the API param,
       # so we have to check the Land::Visit does not exist
+      #
       def record_visit
-        @visit = Visit.new
-        visit.id = @visit_id
-        visit.attribution   = attribution
-        visit.cookie_id     = @cookie_id
-        visit.referer_id    = referer&.id
-        visit.user_agent_id = user_agent.id
-        visit.ip_address    = remote_ip
-        visit.domain_id     = request_domain&.id
-        visit.raw_query_string = request.query_string
-        visit.save
+        @visit = Visit.find_or_create_by(visit_id: @visit_id) do |visit|
+          visit.id = @visit_id
+          visit.attribution   = attribution
+          visit.cookie_id     = @cookie_id
+          visit.referer_id    = referer&.id
+          visit.user_agent_id = user_agent.id
+          visit.ip_address    = remote_ip
+          visit.domain_id     = request_domain&.id
+          visit.raw_query_string = request.query_string
+        end
 
         @visit_id
       end
@@ -43,16 +44,15 @@ module Land
 
         @visit_id         = request.params['visit_id']
         @last_visit_time  = nil
-        @user_agent_hash  = request.params['user_agent']
+        @user_agent_hash  = Digest::SHA2.base64digest(request.params['user_agent'])
         @attribution_hash = attribution_hash
-        @referer_hash     = request.params['referer']
+        @referer_hash     = Digest::SHA2.base64digest(request.params['referer'])
       end
 
       # visit_id is an optional keyword param, when this is called from
       # the application it is used in directly the visit_id does not exist
       def record_pageview(method: nil, path: nil)
         current_time = Time.now
-
 
         @pageview = Pageview.create do |p|
           p.path = path || request.path.to_s
@@ -93,6 +93,23 @@ module Land
         end
       end
 
+      # Overriding user agent as it is set via params and not header in the API
+      def user_agent
+        return @user_agent if @user_agent
+
+        user_agent = request.params['user_agent']
+        user_agent = Land.config.blank_user_agent_string if user_agent.blank?
+
+        @user_agent = UserAgent[user_agent]
+      end
+
+      # Overriding referer URI to pull from passed params in the API
+      def referer_uri
+        return unless request.params['referer'].present?
+
+        @referer_uri ||= Addressable::URI.parse(request.params['referer'].sub(/\Awww\./i, '//\0'))
+      end
+
       def maybe_update_visit_attribution
         return unless attribution?
 
@@ -104,7 +121,7 @@ module Land
       def attribution_values_present?(visit)
         visit.attribution
              .attributes
-             .reject {|k, _v| ['attribution_id', 'created_at'].include?(k) }
+             .reject { |k, _v| %w[attribution_id created_at].include?(k) }
              .values
              .any?
       end
