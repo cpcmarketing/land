@@ -44,9 +44,9 @@ module Land
 
         @visit_id         = request.params['visit_id']
         @last_visit_time  = nil
-        @user_agent_hash  = Digest::SHA2.base64digest(request.params['user_agent'])
+        @user_agent_hash  = Digest::SHA2.base64digest(raw_user_agent)
         @attribution_hash = attribution_hash
-        @referer_hash     = Digest::SHA2.base64digest(request.params['referer'])
+        @referer_hash     = Digest::SHA2.base64digest(referer_uri.to_s)
       end
 
       # visit_id is an optional keyword param, when this is called from
@@ -103,6 +103,10 @@ module Land
         @user_agent = UserAgent[user_agent]
       end
 
+      def raw_user_agent
+        request.params['user_agent'] || Land.config.blank_user_agent_string
+      end
+
       # Overriding referer URI to pull from passed params in the API
       def referer_uri
         return unless request.params['referer'].present?
@@ -124,6 +128,10 @@ module Land
              .reject { |k, _v| %w[attribution_id created_at].include?(k) }
              .values
              .any?
+      end
+
+      def new_visit?
+        Land::Visit.find_by(@visit_id).nil?
       end
     end
   end
