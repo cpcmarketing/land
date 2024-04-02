@@ -104,7 +104,7 @@ module Land
       end
 
       def raw_user_agent
-        request.params['user_agent'] || user_agent.user_agent || Land.config.blank_user_agent_string
+        request.params['user_agent'] || user_agent&.user_agent || Land.config.blank_user_agent_string
       end
 
       # Overriding referer URI to pull from passed params in the API
@@ -128,6 +128,10 @@ module Land
              .reject { |k, _v| %w[attribution_id created_at].include?(k) }
              .values
              .any?
+      end
+
+      def new_visit?
+        Land::Visit.find_by(@visit_id).nil? || @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
       end
     end
   end

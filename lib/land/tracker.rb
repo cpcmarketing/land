@@ -260,7 +260,7 @@ module Land
     end
 
     def new_visit?
-      Land::Visit.find_by(@visit_id).nil? || @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
+      @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
     end
 
     def external_referer?
