@@ -112,7 +112,7 @@ module Land
         # override
         type = 'user' if controller.request.query_parameters.with_indifferent_access.slice(*TRACKING_KEYS).any?
 
-        # match on versioned APIs, which server the frontend
+        # match on versioned APIs, which serve the frontend
         type = 'api' if controller.request.path =~ %r{^/api/v}
 
         "Land::Trackers::#{type.classify}Tracker".constantize.new(controller)
@@ -260,7 +260,7 @@ module Land
     end
 
     def new_visit?
-      @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
+      Land::Visit.find_by(@visit_id).nil? || @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
     end
 
     def external_referer?
