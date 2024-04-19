@@ -21,26 +21,30 @@ module Land
       # so we have to check the Land::Visit does not exist
       #
       def record_visit
-        @visit = Visit.find_or_create_by(visit_id: @visit_id) do |visit|
-          visit.id = @visit_id
-          visit.attribution   = attribution
-          visit.cookie_id     = @cookie_id
-          visit.referer_id    = referer&.id
-          visit.user_agent_id = user_agent.id
-          visit.ip_address    = remote_ip
-          visit.domain_id     = request_domain&.id
-          visit.raw_query_string = request.query_string
+        case Visit.where(visit_id: @visit_id).first
+        in nil
+          @visit = Visit.create do |visit|
+            visit.id = @visit_id
+            visit.attribution   = attribution
+            visit.cookie_id     = @cookie_id
+            visit.referer_id    = referer&.id
+            visit.user_agent_id = user_agent.id
+            visit.ip_address    = remote_ip
+            visit.domain_id     = request_domain&.id
+            visit.raw_query_string = request.query_string
+          end
+        in visit
+          @visit = visit
         end
 
         @visit_id
       end
 
       def load
-        @cookie_id = request.params['cookie_id']
-
-        # Create a new cookie if it is not present, if it doesn't save then it already
-        # exists. If the format is invalid Land::Tracker will validate
-        Cookie.find_or_create_by(cookie_id: @cookie_id)
+        @cookie_id = cookie_id = request.params['cookie_id']
+        # validates the cookie is a UUID, if not sets to 'nil', from Tracker
+        validate_cookie
+        Cookie.create(cookie_id:) unless Cookie.where(cookie_id:).first
 
         @visit_id         = request.params['visit_id']
         @last_visit_time  = nil
