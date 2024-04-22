@@ -7,7 +7,6 @@ module Land
 
       def track
         load
-        cookie
         record_visit
 
         # Api request race conditions mean that the visit may be created on a call
@@ -41,9 +40,8 @@ module Land
       end
 
       def load
+        # create cookie prior to validating
         @cookie_id = cookie_id = request.params['cookie_id']
-        # validates the cookie is a UUID, if not sets to 'nil', from Tracker
-        validate_cookie
         Cookie.create(cookie_id:) unless Cookie.where(cookie_id:).first
 
         @visit_id         = request.params['visit_id']
