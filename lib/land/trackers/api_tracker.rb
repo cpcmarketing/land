@@ -20,8 +20,7 @@ module Land
       # so we have to check the Land::Visit does not exist
       #
       def record_visit
-        case Visit.where(visit_id: @visit_id).first
-        in nil
+        ActiveRecord::Base.transaction do
           @visit = Visit.create do |visit|
             visit.id = @visit_id
             visit.attribution   = attribution
@@ -32,8 +31,8 @@ module Land
             visit.domain_id     = request_domain&.id
             visit.raw_query_string = request.query_string
           end
-        in visit
-          @visit = visit
+        rescue PG::UniqueViolation
+          @visit = Visit.find(@visit_id)
         end
 
         @visit_id
@@ -42,7 +41,12 @@ module Land
       def load
         # create cookie prior to validating
         @cookie_id = cookie_id = request.params['cookie_id']
-        Cookie.create(cookie_id:) unless Cookie.where(cookie_id:).first
+
+        ActiveRecord::Base.transaction do
+          Cookie.create(cookie_id:)
+        rescue PG::UniqueViolation
+          nil
+        end
 
         @visit_id         = request.params['visit_id']
         @last_visit_time  = nil
