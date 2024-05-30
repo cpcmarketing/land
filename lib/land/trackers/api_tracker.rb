@@ -125,7 +125,7 @@ module Land
         visit.update(attribution:) unless attribution_values_present?(visit)
       end
 
-      def maybe_update_visit_attribution
+      def maybe_update_visit_referer
         return unless referer_uri.present?
 
         visit = Visit.find(@visit_id)
