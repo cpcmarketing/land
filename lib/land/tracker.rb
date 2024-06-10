@@ -260,6 +260,8 @@ module Land
     end
 
     def new_visit?
+      Rails.logger.debug "New visit reasons: #{Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }}"
+
       @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
     end
 
@@ -306,6 +308,8 @@ module Land
 
     def visit_stale?
       return false unless @last_visit_time
+
+      Rails.logger.debug "Last visit time: #{@last_visit_time}"
       Time.current - @last_visit_time > Land.config.visit_timeout
     end
   end
