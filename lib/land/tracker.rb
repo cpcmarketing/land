@@ -260,7 +260,7 @@ module Land
     end
 
     def new_visit?
-      Rails.logger.debug "New visit reasons: #{Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }}"
+      Rails.logger.debug "New visit reasons: #{Land.config.new_visit_reasons}"
 
       @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
     end
