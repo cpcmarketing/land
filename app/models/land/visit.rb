@@ -10,7 +10,7 @@ module Land
 
     lookup_for :owner, class_name: Owner
 
-    has_many :pageviews, dependent: :destroy
+    has_many :pageviews
 
     validates :visit_id, presence: true, uniqueness: true
 
