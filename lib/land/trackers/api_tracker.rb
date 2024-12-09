@@ -15,6 +15,7 @@ module Land
         # string will be updated whenever the visit API call is completed.
         maybe_update_visit_attribution
         maybe_update_visit_referer
+        maybe_set_unaltered_ingress_url
       end
 
       # Overriding record_visit method as we set the visit id from the API param,
@@ -120,16 +121,21 @@ module Land
       def maybe_update_visit_attribution
         return unless attribution?
 
-        visit = Visit.find(@visit_id)
-        visit.update(raw_query_string: request.query_string) unless visit.raw_query_string.present?
-        visit.update(attribution:) unless attribution_values_present?(visit)
+        @visit.update(raw_query_string: request.query_string) unless visit.raw_query_string.present?
+        @visit.update(attribution:) unless attribution_values_present?(visit)
       end
 
       def maybe_update_visit_referer
         return unless referer_uri.present?
 
-        visit = Visit.find(@visit_id)
-        visit.update(referer: referer) unless visit.referer.present?
+        @visit = Visit.find(@visit_id)
+        @visit.update(referer:) unless visit.referer.present?
+      end
+
+      def maybe_set_unaltered_ingress_url
+        return unless @visit.unaltered_ingress_url.blank? && request.params['unaltered_ingress_url'].present?
+
+        @visit.update(unaltered_ingress_url: request.params['unaltered_ingress_url'])
       end
 
       def attribution_values_present?(visit)
