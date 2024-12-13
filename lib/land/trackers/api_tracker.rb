@@ -62,7 +62,7 @@ module Land
           p.path = path || request.path.to_s
           p.http_method                 = method || request.method
           p.mime_type                   = request.media_type || request.format.to_s
-          p.query_string                = untracked_params.to_query
+          p.query_string                = query_string.to_query
           p.request_id                  = request.uuid
           p.click_id                    = tracking_params['click_id']
           p.tiktok_pixel_cookie_id      = tracking_params['tiktok_pixel_cookie_id']
