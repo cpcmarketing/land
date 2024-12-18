@@ -32,13 +32,14 @@ module Land
 
         @visit = Visit.create do |visit|
           visit.id = @visit_id
-          visit.attribution   = attribution
-          visit.cookie_id     = @cookie_id
-          visit.referer_id    = referer&.id
-          visit.user_agent_id = user_agent.id
-          visit.ip_address    = remote_ip
-          visit.domain_id     = request_domain&.id
+          visit.attribution      = attribution
+          visit.cookie_id        = @cookie_id
+          visit.referer_id       = referer&.id
+          visit.user_agent_id    = user_agent.id
+          visit.ip_address       = remote_ip
+          visit.domain_id        = request_domain&.id
           visit.raw_query_string = unescaped_query_string
+          visit.click_id         = tracking_params['click_id']
         end
 
         @visit_id
