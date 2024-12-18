@@ -143,7 +143,7 @@ module Land
       def maybe_set_visit_referer
         return unless referer_uri.present? || @visit.referer.present?
 
-        @visit.referer = referer
+        @visit.referer_id = referer.id
       end
 
       def maybe_set_unaltered_ingress_url
