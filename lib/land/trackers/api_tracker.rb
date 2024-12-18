@@ -17,8 +17,9 @@ module Land
         maybe_set_unaltered_ingress_url
         maybe_set_visit_attribution
         maybe_set_visit_referer
+        maybe_set_click_id
 
-        @visit.save if @visit.changed?
+        @visit.save! if @visit.changed?
       rescue StandardError => e
         Land.config.logger.error "Error recording visit: #{e.message}"
       end
@@ -118,6 +119,12 @@ module Land
         return unless request.params['referer'].present?
 
         @referer_uri ||= Addressable::URI.parse(request.params['referer'].sub(/\Awww\./i, '//\0'))
+      end
+
+      def maybe_set_click_id
+        return unless tracking_params['click_id'].present? && @visit.click_id.blank?
+
+        @visit.click_id = tracking_params['click_id']
       end
 
       def maybe_set_visit_attribution
