@@ -13,28 +13,33 @@ module Land
         # that is not the visit call. Query strings are passed from the front end
         # visit API call. If the visit is created on a different call, the query
         # string will be updated whenever the visit API call is completed.
-        maybe_update_visit_attribution
-        maybe_update_visit_referer
+        maybe_set_raw_query_string
+        maybe_set_unaltered_ingress_url
+        maybe_set_visit_attribution
+        maybe_set_visit_referer
+        maybe_set_click_id
+
+        @visit.save! if @visit.changed?
+      rescue StandardError => e
+        Land.config.logger.error "Error recording visit: #{e.message}"
       end
 
       # Overriding record_visit method as we set the visit id from the API param,
       # so we have to check the Land::Visit does not exist
       #
       def record_visit
-        case Visit.where(visit_id: @visit_id).first
-        in nil
-          @visit = Visit.create do |visit|
-            visit.id = @visit_id
-            visit.attribution   = attribution
-            visit.cookie_id     = @cookie_id
-            visit.referer_id    = referer&.id
-            visit.user_agent_id = user_agent.id
-            visit.ip_address    = remote_ip
-            visit.domain_id     = request_domain&.id
-            visit.raw_query_string = request.query_string
-          end
-        in visit
-          @visit = visit
+        return @visit_id if visit
+
+        @visit = Visit.create do |visit|
+          visit.id = @visit_id
+          visit.attribution      = attribution
+          visit.cookie_id        = @cookie_id
+          visit.referer_id       = referer&.id
+          visit.user_agent_id    = user_agent.id
+          visit.ip_address       = remote_ip
+          visit.domain_id        = request_domain&.id
+          visit.raw_query_string = unescaped_query_string
+          visit.click_id         = tracking_params['click_id']
         end
 
         @visit_id
@@ -117,19 +122,34 @@ module Land
         @referer_uri ||= Addressable::URI.parse(request.params['referer'].sub(/\Awww\./i, '//\0'))
       end
 
-      def maybe_update_visit_attribution
-        return unless attribution?
+      def maybe_set_click_id
+        return unless tracking_params['click_id'].present? && @visit.click_id.blank?
 
-        visit = Visit.find(@visit_id)
-        visit.update(raw_query_string: request.query_string) unless visit.raw_query_string.present?
-        visit.update(attribution:) unless attribution_values_present?(visit)
+        @visit.click_id = tracking_params['click_id']
       end
 
-      def maybe_update_visit_referer
-        return unless referer_uri.present?
+      def maybe_set_visit_attribution
+        return unless attribution? || attribution_values_present?(visit)
 
-        visit = Visit.find(@visit_id)
-        visit.update(referer: referer) unless visit.referer.present?
+        @visit.attribution = attribution
+      end
+
+      def maybe_set_raw_query_string
+        return unless request.query_string.present?
+
+        @visit.raw_query_string = unescaped_query_string
+      end
+
+      def maybe_set_visit_referer
+        return unless referer_uri.present? || @visit.referer.present?
+
+        @visit.referer_id = referer.id
+      end
+
+      def maybe_set_unaltered_ingress_url
+        return unless @visit.unaltered_ingress_url.blank? && request.params['unaltered_ingress_url'].present?
+
+        @visit.unaltered_ingress_url = request.params['unaltered_ingress_url']
       end
 
       def attribution_values_present?(visit)
@@ -140,8 +160,16 @@ module Land
              .any?
       end
 
+      def unescaped_query_string
+        CGI.unescape(request.query_string)
+      end
+
+      def visit
+        @visit ||= Land::Visit.where(visit_id: @visit_id).first
+      end
+
       def new_visit?
-        Land::Visit.find_by(@visit_id).nil?
+        @visit.nil?
       end
     end
   end
