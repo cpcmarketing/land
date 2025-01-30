@@ -15,6 +15,7 @@ module Land
         # string will be updated whenever the visit API call is completed.
         maybe_update_visit_attribution
         maybe_update_visit_referer
+        maybe_update_click_id
       end
 
       # Overriding record_visit method as we set the visit id from the API param,
@@ -123,6 +124,13 @@ module Land
         visit = Visit.find(@visit_id)
         visit.update(raw_query_string: request.query_string) unless visit.raw_query_string.present?
         visit.update(attribution:) unless attribution_values_present?(visit)
+      end
+
+      def maybe_update_click_id
+        return unless tracking_params['click_id'].present?
+
+        visit = Visit.find(@visit_id)
+        visit.update(click_id: tracking_params['click_id']) unless visit.click_id.present?
       end
 
       def maybe_update_visit_referer
