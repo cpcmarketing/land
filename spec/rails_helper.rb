@@ -1,32 +1,59 @@
 # frozen_string_literal: true
 
 # This file is copied to spec/ when you run 'rails generate rspec:install'
-ENV['RAILS_ENV'] ||= "test"
+ENV['RAILS_ENV'] ||= 'test'
 
 require 'bundler/setup'
-require "combustion"
-require "simplecov"
-
-SimpleCov.start "rails" do
-  add_filter "/spec"
-end
+require 'combustion'
+require 'simplecov'
 
 Combustion.initialize! :active_record,
-  database_reset: false,
-  load_schema: false,
-  database_migrate: false
+                       :action_controller,
+                       database_reset: false,
+                       load_schema: false,
+                       database_migrate: false
 
-Land.config.enabled = true
 
-require "spec_helper"
+require 'land'
+
+Land.configure do |config|
+  # Enable land tracking
+  config.enabled = true
+
+  # Uncomment and modify to skip tracking for given paths.
+  # config.untracked_paths = %w[
+  #   /ping
+  #   /status
+  # ]
+
+  # Uncomment and modify to skip tracking for given IPs
+  # config.untracked_ips = %w[
+  #   127.0.0.1
+  #   192.168.0.1
+  # ]
+
+  # If request.user_agent is blank, this string is saved instead.
+  config.blank_user_agent_string = 'user agent missing'
+
+  # Database schema for land tables
+  config.schema = 'land'
+
+  # Timeout before a new visit is created
+  config.visit_timeout = 1.hour
+end
+
+
+
+require 'spec_helper'
 
 # Prevent database truncation if the environment is production
-abort("The Rails environment is running in production mode!") if Rails.env.production?
+abort('The Rails environment is running in production mode!') if Rails.env.production?
 
-require "pry"
-require "rspec/rails"
+require 'pry'
+require 'rspec/rails'
 # Add additional requires below this line. Rails is not loaded until this point!
-
+# Loading land manually
+#
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
 # run as spec files by default. This means that files in spec/support that end
@@ -41,7 +68,7 @@ require "rspec/rails"
 # require only the support files necessary.
 #
 # Dir[Rails.root.join('spec', 'support', '**', '*.rb')].each { |f| require f }
-Dir[Rails.root.join("spec/support/**/*.rb")].each { |f| require f }
+Dir[Rails.root.join('spec/support/**/*.rb')].each { |f| require f }
 
 # Checks for pending migrations and applies them before tests are run.
 # If you are not using ActiveRecord, you can remove these lines.
@@ -84,7 +111,7 @@ RSpec.configure do |config|
   config.filter_rails_from_backtrace!
 
   # arbitrary gems may also be filtered via:
-  config.filter_gems_from_backtrace("rspec", "rspec-rails")
+  config.filter_gems_from_backtrace('rspec', 'rspec-rails')
 
   config.backtrace_exclusion_patterns << %r{vendor/}
 end

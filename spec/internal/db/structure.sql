@@ -17,6 +17,13 @@ CREATE SCHEMA land;
 
 
 --
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+--
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -888,7 +895,8 @@ CREATE TABLE land.pageviews (
     click_id text,
     http_status integer,
     response_time integer,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    tiktok_pixel_cookie_id text
 );
 
 
@@ -1283,7 +1291,11 @@ CREATE TABLE land.visits (
     owner_id integer,
     ip_address inet NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    raw_query_string text,
+    domain_id integer,
+    unaltered_ingress_url text,
+    click_id text
 );
 
 
@@ -2283,13 +2295,6 @@ CREATE INDEX "index_land.events_on_created_at" ON land.events USING btree (creat
 
 
 --
--- Name: index_land.events_on_pageview_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX "index_land.events_on_pageview_id" ON land.events USING btree (pageview_id);
-
-
---
 -- Name: index_land.events_on_request_id; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -2893,12 +2898,16 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
-('20200103012916'),
-('20200724201945'),
-('20201024041516'),
-('20201027042604'),
-('20220428195358'),
+('20241218175001'),
+('20241209201633'),
+('20231211214820'),
+('20231107214407'),
+('20230308215104'),
+('20230116162450'),
 ('20220914012158'),
-('20230116162450');
-
+('20220428195358'),
+('20201027042604'),
+('20201024041516'),
+('20200724201945'),
+('20200103012916');
 
