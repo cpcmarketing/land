@@ -45,6 +45,7 @@ end
 %w[
   app:template
   app:update
+  restart
 ].each { |name| Rake::Task[name].clear }
 
 # TODO(kyle): not sure what 'secret' is, but it does not resolve
@@ -55,6 +56,7 @@ end
   install:local
   log:clear
   rerdoc
+  secret
   time:zones
   tmp:clear
   tmp:create
