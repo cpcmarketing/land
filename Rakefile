@@ -40,15 +40,14 @@ else
 end
 
 # Clean up some clutter in `rake -T`.
-# TODO(kyle): not sure what 'secret' is, but it does not resolve
+# TODO(kyle): This task 'restart' caused an error on bin/setup
 # restart
 %w[
   app:template
   app:update
-  restart
 ].each { |name| Rake::Task[name].clear }
 
-# TODO(kyle): not sure what 'secret' is, but it does not resolve
+# TODO(kyle): This task 'secret' caused an error on bin/setup
 # secret
 %w[
   clean
@@ -56,7 +55,6 @@ end
   install:local
   log:clear
   rerdoc
-  secret
   time:zones
   tmp:clear
   tmp:create
