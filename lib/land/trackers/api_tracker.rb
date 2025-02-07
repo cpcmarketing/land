@@ -39,7 +39,7 @@ module Land
           visit.user_agent_id    = user_agent&.id
           visit.ip_address       = remote_ip
           visit.domain_id        = request_domain&.id
-          visit.raw_query_string = request.query_string
+          visit.raw_query_string = referer_uri&.query
           visit.click_id         = tracking_params['click_id']
         end
 

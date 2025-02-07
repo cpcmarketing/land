@@ -11,7 +11,7 @@ end
 RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
   before do
     Rails.application.routes.draw do
-      post '/api/v1/test', to: 'api_tracker_test#call'
+      get '/api/v1/test', to: 'api_tracker_test#call'
       post '/api/v1/visit', to: 'api_tracker_test#call'
     end
   end
@@ -121,8 +121,8 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
 
     it 'creates the expected records' do
       # first call not visit
-      post '/api/v1/test', params: { cookie_id:, visit_id: },
-                           as: :json
+      get "/api/v1/test?cookie_id=#{cookie_id}&visit_id=#{visit_id}&location_id=0", params: { cookie_id:, visit_id: },
+                                                                                    as: :json
 
       expect(Land::Visit.where(cookie_id:).count).to eq(1)
 
@@ -133,7 +133,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.referer).to eq(nil)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
       expect(visit.unaltered_ingress_url).to eq(nil)
-      expect(visit.raw_query_string).to eq('')
+      expect(visit.raw_query_string).to eq(nil)
       expect(visit.click_id).to eq(nil)
       expect(visit.attribution).to_not be_nil
 
@@ -150,7 +150,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
 
       expect(pageview.visit_id).to eq(visit_id)
       expect(pageview.path).to eq('/api/v1/test')
-      expect(pageview.query_string).to eq('')
+      expect(pageview.raw_query_string.query_string).to eq("cookie_id=#{cookie_id}&location_id=0&visit_id=#{visit_id}")
       expect(pageview.mime_type).to eq('application/json')
       expect(pageview.http_method).to eq('POST')
       expect(pageview.click_id).to eq(nil)
