@@ -17,6 +17,7 @@ module Land
         maybe_set_unaltered_ingress_url
         maybe_set_visit_attribution
         maybe_set_visit_referer
+        maybe_set_user_agent
         maybe_set_click_id
 
         @visit.save! if @visit.changed?
@@ -31,11 +32,11 @@ module Land
         return @visit_id if visit
 
         @visit = Visit.create do |visit|
-          visit.id = @visit_id
+          visit.id               = @visit_id
           visit.attribution      = attribution
           visit.cookie_id        = @cookie_id
           visit.referer_id       = referer&.id
-          visit.user_agent_id    = user_agent.id
+          visit.user_agent_id    = user_agent&.id
           visit.ip_address       = remote_ip
           visit.domain_id        = request_domain&.id
           visit.raw_query_string = request.query_string
@@ -48,35 +49,34 @@ module Land
       def load
         # create cookie prior to validating
         @cookie_id = cookie_id = request.params['cookie_id']
-        Cookie.create(cookie_id:) unless Cookie.where(cookie_id:).first
+        Cookie.create(cookie_id:) unless Cookie.find_by(cookie_id:)
 
         @visit_id         = request.params['visit_id']
-        @last_visit_time  = nil
-        @user_agent_hash  = Digest::SHA2.base64digest(raw_user_agent)
+        @last_visit_time  = last_visit&.created_at
+        @user_agent_hash  = Digest::SHA2.base64digest(raw_user_agent) if raw_user_agent
         @attribution_hash = attribution_hash
         @referer_hash     = Digest::SHA2.base64digest(referer_uri.to_s)
       end
 
-      # visit_id is an optional keyword param, when this is called from
-      # the application it is used in directly the visit_id does not exist
       def record_pageview(method: nil, path: nil)
         current_time = Time.now
 
         @pageview = Pageview.create do |p|
-          p.path = path || request.path.to_s
-          p.http_method                 = method || request.method
-          p.mime_type                   = request.media_type || request.format.to_s
-          p.query_string                = untracked_params.to_query
-          p.request_id                  = request.uuid
-          p.click_id                    = tracking_params['click_id']
-          p.tiktok_pixel_cookie_id      = tracking_params['tiktok_pixel_cookie_id']
-          p.http_status                 = status || response.status
-          p.visit_id                    = @visit_id
-          p.created_at                  = current_time
-          p.response_time               = (current_time - @start_time) * 1000
+          p.path                   = request.path.to_s
+          p.http_method            = method || request.method
+          p.mime_type              = request.media_type || request.format.to_s
+          p.query_string           = untracked_params.to_query
+          p.request_id             = request.uuid
+          p.click_id               = tracking_params['click_id']
+          p.tiktok_pixel_cookie_id = tracking_params['tiktok_pixel_cookie_id']
+          p.http_status            = status || response.status
+          p.visit_id               = @visit_id
+          p.created_at             = current_time
+          p.response_time          = (current_time - @start_time) * 1000
         end
       end
 
+      # This is invoked from Land::Action
       def save
         record_pageview
 
@@ -105,8 +105,8 @@ module Land
       def user_agent
         return @user_agent if @user_agent
 
-        user_agent = request.params['user_agent']
-        user_agent = Land.config.blank_user_agent_string if user_agent.blank?
+        user_agent = request.params['user_agent'] ||
+                     Land.config.blank_user_agent_string
 
         @user_agent = UserAgent[user_agent]
       end
@@ -115,11 +115,15 @@ module Land
         request.params['user_agent'] || Land.config.blank_user_agent_string
       end
 
-      # Overriding referer URI to pull from passed params in the API
-      def referer_uri
-        return unless request.params['referer'].present?
+      def unaltered_ingress_url
+        @unaltered_ingress_url ||= request.params['unaltered_ingress_url']
+      end
 
-        @referer_uri ||= Addressable::URI.parse(request.params['referer'].sub(/\Awww\./i, '//\0'))
+      def referer_uri
+        return @referer_uri if @referer_uri
+        return unless unaltered_ingress_url.present?
+
+        @referer_uri ||= Addressable::URI.parse(unaltered_ingress_url.sub(/\Awww\./i, '//\0'))
       end
 
       def maybe_set_click_id
@@ -135,10 +139,10 @@ module Land
       end
 
       def maybe_set_raw_query_string
-        return unless request.query_string.present?
+        return unless referer_uri.present?
         return unless @visit.raw_query_string.blank?
 
-        @visit.raw_query_string = request.query_string
+        @visit.raw_query_string = referer_uri.query
       end
 
       def maybe_set_visit_referer
@@ -148,9 +152,16 @@ module Land
       end
 
       def maybe_set_unaltered_ingress_url
-        return unless @visit.unaltered_ingress_url.blank? && request.params['unaltered_ingress_url'].present?
+        return unless @visit.unaltered_ingress_url.blank? && unaltered_ingress_url.present?
 
-        @visit.unaltered_ingress_url = request.params['unaltered_ingress_url']
+        @visit.unaltered_ingress_url = unaltered_ingress_url
+      end
+
+      def maybe_set_user_agent
+        return unless user_agent &&
+                      @visit.user_agent.user_agent == Land.config.blank_user_agent_string
+
+        @visit.user_agent_id = user_agent.id
       end
 
       def attribution_values_present?(visit)
@@ -166,7 +177,14 @@ module Land
       end
 
       def visit
-        @visit ||= Land::Visit.where(visit_id: @visit_id).first
+        @visit ||= Land::Visit.where(visit_id: @visit_id)
+                              .first
+      end
+
+      def last_visit
+        @last_visit ||= Land::Visit.where(cookie_id: @cookie)
+                                   .order(created_at: :desc)
+                                   .first
       end
 
       def new_visit?
