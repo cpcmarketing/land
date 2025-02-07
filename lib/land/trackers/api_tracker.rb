@@ -62,7 +62,7 @@ module Land
         current_time = Time.now
 
         @pageview = Pageview.create do |p|
-          p.path                   = request.path.to_s
+          p.path                   = path || request.path.to_s
           p.http_method            = method || request.method
           p.mime_type              = request.media_type || request.format.to_s
           p.query_string           = untracked_params.to_query
@@ -101,6 +101,7 @@ module Land
         end
       end
 
+      # Access Methods --------------------------------------------
       # Overriding user agent as it is set via params and not header in the API
       def user_agent
         return @user_agent if @user_agent
@@ -112,7 +113,7 @@ module Land
       end
 
       def raw_user_agent
-        request.params['user_agent'] || Land.config.blank_user_agent_string
+        @raw_user_agent ||= request.params['user_agent'] || Land.config.blank_user_agent_string
       end
 
       def unaltered_ingress_url
@@ -126,6 +127,22 @@ module Land
         @referer_uri ||= Addressable::URI.parse(unaltered_ingress_url.sub(/\Awww\./i, '//\0'))
       end
 
+      def visit
+        @visit ||= Land::Visit.where(visit_id: @visit_id)
+                              .first
+      end
+
+      def last_visit
+        @last_visit ||= Land::Visit.where(cookie_id: @cookie)
+                                   .order(created_at: :desc)
+                                   .first
+      end
+
+      def new_visit?
+        @visit.nil?
+      end
+
+      # Setting Methods - Needed in case visit does not get sent first --------------
       def maybe_set_click_id
         return unless tracking_params['click_id'].present? && @visit.click_id.blank?
 
@@ -170,25 +187,6 @@ module Land
              .reject { |k, _v| %w[attribution_id created_at].include?(k) }
              .values
              .any?
-      end
-
-      def unescaped_query_string
-        CGI.unescape(request.query_string)
-      end
-
-      def visit
-        @visit ||= Land::Visit.where(visit_id: @visit_id)
-                              .first
-      end
-
-      def last_visit
-        @last_visit ||= Land::Visit.where(cookie_id: @cookie)
-                                   .order(created_at: :desc)
-                                   .first
-      end
-
-      def new_visit?
-        @visit.nil?
       end
     end
   end
