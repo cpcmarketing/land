@@ -1,21 +1,19 @@
 begin
-  require "bundler/setup"
-  require "bundler/gem_tasks"
+  require 'bundler/setup'
+  require 'bundler/gem_tasks'
 rescue LoadError
   puts 'You must `gem install bundler` and `bundle install` to run rake tasks'
 end
 
 require 'lookup_by'
-require "combustion"
+require 'combustion'
 
 Combustion::Application.configure_for_combustion
 Combustion::Application.load_tasks
 
-if defined?(ActiveRecord)
-  ActiveRecord.schema_format = :sql
-end
+ActiveRecord.schema_format = :sql if defined?(ActiveRecord)
 
-require "rspec/core/rake_task"
+require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new(:spec)
 
 require 'rdoc/task'
@@ -29,32 +27,34 @@ RDoc::Task.new(:rdoc) do |rdoc|
 end
 
 # Lifted from appraisal/task to avoid deprecated clutter.
-desc "Run the given task for all appraisals"
+desc 'Run the given task for all appraisals'
 task :appraisal do
   ARGV.shift
   exec "bundle exec appraisal rake #{ARGV.join(' ')}"
 end
 
-if !ENV["APPRAISAL_INITIALIZED"] && !ENV["TRAVIS"]
+if !ENV['APPRAISAL_INITIALIZED'] && !ENV['TRAVIS']
   task default: :appraisal
 else
   task default: :spec
 end
 
 # Clean up some clutter in `rake -T`.
+# TODO(kyle): This task 'restart' caused an error on bin/setup
+# restart
 %w[
   app:template
   app:update
-  restart
 ].each { |name| Rake::Task[name].clear }
 
+# TODO(kyle): This task 'secret' caused an error on bin/setup
+# secret
 %w[
   clean
   clobber_rdoc
   install:local
   log:clear
   rerdoc
-  secret
   time:zones
   tmp:clear
   tmp:create
