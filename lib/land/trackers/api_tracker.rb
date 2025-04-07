@@ -22,6 +22,11 @@ module Land
 
         @visit.save! if @visit.changed?
       rescue StandardError => e
+        # Here we are going to tag the span with the error if Datadog span exists
+        if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+          Datadog::Tracing.active_span&.set_error(e)
+        end
+
         Land.config.logger.error "Error recording visit: #{e.message}"
       end
 
@@ -106,8 +111,7 @@ module Land
       def user_agent
         return @user_agent if @user_agent
 
-        user_agent = request.params['user_agent'] ||
-                     Land.config.blank_user_agent_string
+        user_agent = request.params['user_agent'] || Land.config.blank_user_agent_string
 
         @user_agent = UserAgent[user_agent]
       end

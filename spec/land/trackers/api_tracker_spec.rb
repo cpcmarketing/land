@@ -195,4 +195,34 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
     end
   end
+
+  describe 'when encountering an unexpected error' do
+    # create a mock of Datadog::Tracing
+    before do
+      unless defined?(Datadog)
+        module Datadog
+          module Tracing
+            def self.active_span; end
+          end
+        end
+      end
+    end
+
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    it 'logs the error and sets the Datadog span error' do
+      @errors = []
+
+      active_span = double('active_span', set_error: ->(e) { @errors << e })
+      allow(Datadog::Tracing).to receive(:active_span).and_return(active_span)
+
+      allow_any_instance_of(Land::Trackers::ApiTracker).to receive(:load).and_raise('boom')
+
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+
+      expect(active_span).to have_received(:set_error).with(kind_of(RuntimeError))
+    end
+  end
 end
