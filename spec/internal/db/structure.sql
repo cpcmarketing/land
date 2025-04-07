@@ -17,13 +17,6 @@ CREATE SCHEMA land;
 
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
---
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -516,8 +509,9 @@ ALTER SEQUENCE land.devices_device_id_seq OWNED BY land.devices.device_id;
 --
 
 CREATE TABLE land.domains (
-    domain_id bigint NOT NULL,
-    domain text NOT NULL
+    domain_id_old bigint,
+    domain text NOT NULL,
+    domain_id uuid DEFAULT gen_random_uuid() NOT NULL
 );
 
 
@@ -537,7 +531,7 @@ CREATE SEQUENCE land.domains_domain_id_seq
 -- Name: domains_domain_id_seq; Type: SEQUENCE OWNED BY; Schema: land; Owner: -
 --
 
-ALTER SEQUENCE land.domains_domain_id_seq OWNED BY land.domains.domain_id;
+ALTER SEQUENCE land.domains_domain_id_seq OWNED BY land.domains.domain_id_old;
 
 
 --
@@ -1052,10 +1046,11 @@ ALTER SEQUENCE land.query_strings_query_string_id_seq OWNED BY land.query_string
 
 CREATE TABLE land.referers (
     referer_id integer NOT NULL,
-    domain_id integer NOT NULL,
+    domain_id_old bigint,
     path_id integer NOT NULL,
     query_string_id integer NOT NULL,
-    attribution_id integer NOT NULL
+    attribution_id integer NOT NULL,
+    domain_id uuid DEFAULT gen_random_uuid() NOT NULL
 );
 
 
@@ -1084,16 +1079,16 @@ ALTER SEQUENCE land.referers_referer_id_seq OWNED BY land.referers.referer_id;
 --
 
 CREATE VIEW land.response_times_by_path AS
- SELECT agg.path_id,
-    agg.path,
-    agg."avg response time (ms)"
+ SELECT path_id,
+    path,
+    "avg response time (ms)"
    FROM ( SELECT p.path_id,
             p.path,
             round(avg(pv.response_time), 3) AS "avg response time (ms)"
            FROM (land.pageviews pv
              JOIN land.paths p USING (path_id))
           GROUP BY p.path_id, p.path) agg
-  ORDER BY agg."avg response time (ms)" DESC;
+  ORDER BY "avg response time (ms)" DESC;
 
 
 --
@@ -1293,9 +1288,10 @@ CREATE TABLE land.visits (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     raw_query_string text,
-    domain_id integer,
+    domain_id_old integer,
     unaltered_ingress_url text,
-    click_id text
+    click_id text,
+    domain_id uuid
 );
 
 
@@ -1426,10 +1422,10 @@ ALTER TABLE ONLY land.devices ALTER COLUMN device_id SET DEFAULT nextval('land.d
 
 
 --
--- Name: domains domain_id; Type: DEFAULT; Schema: land; Owner: -
+-- Name: domains domain_id_old; Type: DEFAULT; Schema: land; Owner: -
 --
 
-ALTER TABLE ONLY land.domains ALTER COLUMN domain_id SET DEFAULT nextval('land.domains_domain_id_seq'::regclass);
+ALTER TABLE ONLY land.domains ALTER COLUMN domain_id_old SET DEFAULT nextval('land.domains_domain_id_seq'::regclass);
 
 
 --
@@ -1902,7 +1898,7 @@ ALTER TABLE ONLY land.query_strings
 --
 
 ALTER TABLE ONLY land.referers
-    ADD CONSTRAINT referers_domain_id_path_id_query_string_id_attribution_id_key UNIQUE (domain_id, path_id, query_string_id, attribution_id);
+    ADD CONSTRAINT referers_domain_id_path_id_query_string_id_attribution_id_key UNIQUE (domain_id_old, path_id, query_string_id, attribution_id);
 
 
 --
@@ -2431,7 +2427,7 @@ CREATE INDEX referers_attribution_id_idx ON land.referers USING btree (attributi
 -- Name: referers_domain_id_idx; Type: INDEX; Schema: land; Owner: -
 --
 
-CREATE INDEX referers_domain_id_idx ON land.referers USING btree (domain_id);
+CREATE INDEX referers_domain_id_idx ON land.referers USING btree (domain_id_old);
 
 
 --
@@ -2868,6 +2864,14 @@ ALTER TABLE ONLY land.visits
 
 
 --
+-- Name: visits visits_domain_id_fkey; Type: FK CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.visits
+    ADD CONSTRAINT visits_domain_id_fkey FOREIGN KEY (domain_id) REFERENCES land.domains(domain_id);
+
+
+--
 -- Name: visits visits_owner_id_fkey; Type: FK CONSTRAINT; Schema: land; Owner: -
 --
 
@@ -2898,6 +2902,7 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20250324151330'),
 ('20241218175001'),
 ('20241209201633'),
 ('20231211214820'),
