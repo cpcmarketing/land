@@ -2902,6 +2902,7 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20250407183941'),
 ('20250324151330'),
 ('20241218175001'),
 ('20241209201633'),

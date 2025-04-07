@@ -73,6 +73,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
 
     before do
       post "/api/v1/visit?#{query_string}", params: body,
+                                            headers: { 'User-Agent': 'test user agent' },
                                             as: :json
     end
 
@@ -109,15 +110,24 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(pageview.click_id).to eq(fbclid)
       expect(pageview.http_status).to eq(200)
       expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
+
+      expect(Land::UserAgent.count).to eq(2)
+      user_agent = visit.user_agent
+
+      expect(user_agent.user_agent_type).to eq('api')
+      expect(user_agent.user_agent).to eq(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+      )
+
+
+
+
     end
   end
 
   context 'when the request is successful and /api/v1/visit is the second request' do
     let(:cookie_id) { SecureRandom.uuid }
     let(:visit_id) { SecureRandom.uuid }
-
-    before do
-    end
 
     it 'creates the expected records' do
       # first call not visit
@@ -157,6 +167,10 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(pageview.http_status).to eq(200)
       expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
 
+      expect(Land::UserAgent.all.count).to eq(1)
+      expect(visit.user_agent.user_agent_type).to eq('api')
+      expect(visit.user_agent.user_agent).to eq('user agent missing')
+
       # visit call
       post "/api/v1/visit?#{query_string}", params: body,
                                             as: :json
@@ -193,6 +207,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(pageview.click_id).to eq(fbclid)
       expect(pageview.http_status).to eq(200)
       expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
+
+      expect(Land::UserAgent.all.count).to eq(2)
+      expect(visit.user_agent.user_agent_type).to eq('api')
+      expect(visit.user_agent.user_agent).to eq(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+      )
+
     end
   end
 

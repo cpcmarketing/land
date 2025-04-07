@@ -111,9 +111,10 @@ module Land
       def user_agent
         return @user_agent if @user_agent
 
-        user_agent = request.params['user_agent'] || Land.config.blank_user_agent_string
-
-        @user_agent = UserAgent[user_agent]
+        @user_agent = Land::UserAgent[@raw_user_agent]
+        @user_agent.user_agent_type = Land::UserAgentType['api']
+        @user_agent.save
+        @user_agent
       end
 
       def raw_user_agent
