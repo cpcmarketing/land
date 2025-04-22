@@ -195,4 +195,19 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
     end
   end
+
+  context 'unit tests' do
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    describe 'VISIT_ENDPOINT_REGEX' do
+      it 'matches the correct endpoint' do
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to be_a(Regexp)
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to match('/api/v1/visit')
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to match('/api/v1121/visit')
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to_not match('/api/v1/visitX')
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to_not match('/apii/v1/visit')
+      end
+    end
+  end
 end
