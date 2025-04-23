@@ -5,6 +5,8 @@ module Land
     class ApiTracker < Tracker
       attr_reader :pageview
 
+      VISIT_ENDPOINT_REGEX = %r{^/api/v\d+/visit$}
+
       def track
         load
         record_visit
@@ -13,15 +15,29 @@ module Land
         # that is not the visit call. Query strings are passed from the front end
         # visit API call. If the visit is created on a different call, the query
         # string will be updated whenever the visit API call is completed.
-        maybe_set_raw_query_string
-        maybe_set_unaltered_ingress_url
-        maybe_set_visit_attribution
-        maybe_set_visit_referer
-        maybe_set_user_agent
-        maybe_set_click_id
 
-        @visit.save! if @visit.changed?
+        # Here we only invoke the visit attribution update if the request is a
+        # visit API call
+        if controller.request.path =~ VISIT_ENDPOINT_REGEX
+          @visit.reload
+
+          maybe_set_raw_query_string
+          maybe_set_unaltered_ingress_url
+          maybe_set_visit_attribution
+          maybe_set_visit_referer
+          maybe_set_user_agent
+          maybe_set_click_id
+
+          @visit.save! if @visit.changed?
+        end
       rescue StandardError => e
+        # Here we are going to tag the span with the error if Datadog span
+        # exists This is called safely to avoid errors in the case that Datadog
+        # is not present
+        if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+          Datadog::Tracing.active_span&.set_error(e)
+        end
+
         Land.config.logger.error "Error recording visit: #{e.message}"
       end
 
@@ -31,16 +47,22 @@ module Land
       def record_visit
         return @visit_id if visit
 
-        @visit = Visit.create do |visit|
-          visit.id               = @visit_id
-          visit.attribution      = attribution
-          visit.cookie_id        = @cookie_id
-          visit.referer_id       = referer&.id
-          visit.user_agent_id    = user_agent&.id
-          visit.ip_address       = remote_ip
-          visit.domain_id        = request_domain&.id
-          visit.raw_query_string = referer_uri&.query
-          visit.click_id         = tracking_params['click_id']
+        begin
+          @visit = Visit.create do |visit|
+            visit.id               = @visit_id
+            visit.attribution      = attribution
+            visit.cookie_id        = @cookie_id
+            visit.referer_id       = referer&.id
+            visit.user_agent_id    = user_agent&.id
+            visit.ip_address       = remote_ip
+            visit.domain_id        = request_domain&.id
+            visit.raw_query_string = referer_uri&.query
+            visit.click_id         = tracking_params['click_id']
+          end
+          # This handles a race condition between the visit and other API requests
+          # ex: page_views, events, feature_flags
+        rescue ActiveRecord::RecordNotUnique
+          @visit = Visit.where(id: @visit_id).first
         end
 
         @visit_id
