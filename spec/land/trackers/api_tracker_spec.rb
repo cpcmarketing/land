@@ -196,6 +196,28 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     end
   end
 
+  context 'when the request is successful and /api/v1/visit is the second request, simulating a race condition' do
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    before do
+    end
+
+    it 'record visit does not throw an error' do
+      allow(Land::Visit).to receive(:create)
+        .and_raise(ActiveRecord::RecordNotUnique, 'Visit already exists')
+
+      # this is asserting that the `record_visit` call does not throw an error,
+      # as this method that is called after the `record_visit` call
+      expect_any_instance_of(Land::Trackers::ApiTracker)
+        .to receive(:maybe_set_raw_query_string).and_call_original
+
+      # visit call
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+    end
+  end
+
   context 'unit tests' do
     let(:cookie_id) { SecureRandom.uuid }
     let(:visit_id) { SecureRandom.uuid }

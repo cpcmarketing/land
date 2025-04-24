@@ -19,8 +19,6 @@ module Land
         # Here we only invoke the visit attribution update if the request is a
         # visit API call
         if controller.request.path =~ VISIT_ENDPOINT_REGEX
-          @visit.reload
-
           maybe_set_raw_query_string
           maybe_set_unaltered_ingress_url
           maybe_set_visit_attribution
@@ -28,7 +26,7 @@ module Land
           maybe_set_user_agent
           maybe_set_click_id
 
-          @visit.save! if @visit.changed?
+          @visit&.save! if @visit&.changed?
         end
       rescue StandardError => e
         # Here we are going to tag the span with the error if Datadog span
@@ -62,7 +60,7 @@ module Land
           # This handles a race condition between the visit and other API requests
           # ex: page_views, events, feature_flags
         rescue ActiveRecord::RecordNotUnique
-          @visit = Visit.where(id: @visit_id).first
+          @visit = Visit.where(visit_id: @visit_id).first
         end
 
         @visit_id
@@ -166,18 +164,21 @@ module Land
 
       # Setting Methods - Needed in case visit does not get sent first --------------
       def maybe_set_click_id
+        return unless @visit
         return unless tracking_params['click_id'].present? && @visit.click_id.blank?
 
         @visit.click_id = tracking_params['click_id']
       end
 
       def maybe_set_visit_attribution
+        return unless @visit
         return unless attribution? || attribution_values_present?(visit)
 
         @visit.attribution = attribution
       end
 
       def maybe_set_raw_query_string
+        return unless @visit
         return unless referer_uri.present?
         return unless @visit.raw_query_string.blank?
 
@@ -185,18 +186,21 @@ module Land
       end
 
       def maybe_set_visit_referer
+        return unless @visit
         return unless referer_uri.present? || @visit.referer.present?
 
         @visit.referer_id = referer.id
       end
 
       def maybe_set_unaltered_ingress_url
+        return unless @visit
         return unless @visit.unaltered_ingress_url.blank? && unaltered_ingress_url.present?
 
         @visit.unaltered_ingress_url = unaltered_ingress_url
       end
 
       def maybe_set_user_agent
+        return unless @visit
         return unless user_agent &&
                       @visit.user_agent.user_agent == Land.config.blank_user_agent_string
 
