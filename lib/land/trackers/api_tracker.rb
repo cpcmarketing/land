@@ -69,7 +69,12 @@ module Land
       def load
         # create cookie prior to validating
         @cookie_id = cookie_id = request.params['cookie_id']
-        Cookie.create(cookie_id:) unless Cookie.find_by(cookie_id:)
+
+        begin
+          Cookie.where(cookie_id:).first_or_create
+        rescue ActiveRecord::RecordNotUnique
+          retry
+        end
 
         @visit_id         = request.params['visit_id']
         @last_visit_time  = last_visit&.created_at
