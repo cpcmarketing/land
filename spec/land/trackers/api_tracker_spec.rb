@@ -216,6 +216,23 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       post "/api/v1/visit?#{query_string}", params: body,
                                             as: :json
     end
+
+    it 'load does not throw error on cookie race condition' do
+      allow(Land::Cookie)
+        .to receive_message_chain(:where, :first_or_create)
+        .and_raise(ActiveRecord::RecordNotUnique, 'Cookie already exists')
+        .and_return([])
+
+      # this is asserting that the `load` call does not throw an error,
+      # as this method that is called after the `load` call
+      expect_any_instance_of(Land::Trackers::ApiTracker)
+        .to receive(:record_visit)
+        .and_call_original
+
+      # visit call
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+    end
   end
 
   context 'unit tests' do
