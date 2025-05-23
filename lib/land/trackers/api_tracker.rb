@@ -135,6 +135,14 @@ module Land
                      Land.config.blank_user_agent_string
 
         @user_agent = UserAgent[user_agent]
+
+        if Land.config.identify_crawlers && defined?(CrawlerDetect)
+          crawler_detect = CrawlerDetect.new(user_agent)
+          user_agent_type = crawler_detect.is_crawler? ? 'crawl' : 'other'
+          @user_agent.update(user_agent_type: UserAgentType[user_agent_type])
+        end
+
+        @user_agent
       end
 
       def raw_user_agent
