@@ -87,10 +87,10 @@ module Land
         current_time = Time.now
 
         @pageview = Pageview.create do |p|
-          p.path                   = path || request.path.to_s
+          p.path                   = path || page_view_path || request.path.to_s
           p.http_method            = method || request.method
           p.mime_type              = request.media_type || request.format.to_s
-          p.query_string           = untracked_params.to_query
+          p.query_string           = untracked_params.to_query.presence || page_view_query_string
           p.request_id             = request.uuid
           p.click_id               = tracking_params['click_id']
           p.tiktok_pixel_cookie_id = tracking_params['tiktok_pixel_cookie_id']
@@ -99,6 +99,31 @@ module Land
           p.created_at             = current_time
           p.response_time          = (current_time - @start_time) * 1000
         end
+
+        maybe_update_visit_attribution
+
+        @pageview
+      end
+
+      def maybe_update_visit_attribution
+        return unless @visit && visit_attribution_empty? && page_view_query_string.present?
+
+        @visit.update!(attribution: attribution_from_page_view_query_string)
+      end
+
+      def attribution_from_page_view_query_string
+        return unless page_view_query_string.present?
+
+        params = Rack::Utils.parse_nested_query(page_view_query_string)
+        Attribution.lookup extract_tracking(params)
+      end
+
+      def page_view_query_string
+        request && request.params['page_view_query_string']
+      end
+
+      def page_view_path
+        request && request.params['page_view_path']
       end
 
       # This is invoked from Land::Action
@@ -226,6 +251,10 @@ module Land
              .reject { |k, _v| %w[attribution_id created_at].include?(k) }
              .values
              .any?
+      end
+
+      def visit_attribution_empty?
+        !attribution_values_present?(@visit)
       end
     end
   end
