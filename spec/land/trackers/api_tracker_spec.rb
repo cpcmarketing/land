@@ -13,6 +13,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     Rails.application.routes.draw do
       get '/api/v1/test', to: 'api_tracker_test#call'
       post '/api/v1/visit', to: 'api_tracker_test#call'
+      post '/api/v1/tracking/page-view', to: 'api_tracker_test#call'
     end
   end
 
@@ -200,9 +201,6 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     let(:cookie_id) { SecureRandom.uuid }
     let(:visit_id) { SecureRandom.uuid }
 
-    before do
-    end
-
     it 'record visit does not throw an error' do
       allow(Land::Visit).to receive(:create)
         .and_raise(ActiveRecord::RecordNotUnique, 'Visit already exists')
@@ -235,6 +233,87 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     end
   end
 
+  context 'pageview arrives first' do
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    it 'the attribution is parsed' do
+      post '/api/v1/tracking/page-view', params: {
+                                           cookie_id:,
+                                           visit_id:,
+                                           page_view_path: 'http://thedebtfreenurse.com/the-debt-free-nurse',
+                                           page_view_query_string: query_string,
+                                           page_view_mime_type: 'text/html',
+                                           page_view_http_method: 'GET',
+                                           page_view_http_status: '200'
+                                         },
+                                         as: :json
+
+      expect(Land::Visit.where(cookie_id:).count).to eq(1)
+
+      visit = Land::Visit.find_by(visit_id:)
+
+      expect(visit.click_id).to eq(nil)
+      expect(visit.raw_query_string).to eq(nil)
+      expect(visit.referer).to eq(nil)
+      expect(visit.unaltered_ingress_url).to eq(nil)
+
+      expect(visit.cookie_id).to eq(cookie_id)
+      expect(visit.visit_id).to eq(visit_id)
+      expect(visit.user_agent.user_agent).to eq('user agent missing')
+
+      expect(visit.attribution).to_not be_nil
+      expect(visit.attribution.campaign).to eq(utm_campaign)
+      expect(visit.attribution.content).to eq(utm_content)
+      expect(visit.attribution.medium).to eq(utm_medium)
+      expect(visit.attribution.source).to eq('instagram')
+      expect(visit.attribution.campaign_identifier).to eq(utm_campaign_id)
+      expect(visit.attribution.medium_identifier).to eq(utm_medium_id)
+      expect(visit.attribution.content_identifier).to eq(utm_content_id)
+    end
+
+    context 'and a visit arrives after' do
+      before(:each) do
+        post '/api/v1/tracking/page-view', params: {
+                                             cookie_id:,
+                                             visit_id:,
+                                             page_view_path: 'http://thedebtfreenurse.com/the-debt-free-nurse',
+                                             page_view_query_string: query_string,
+                                             page_view_mime_type: 'text/html',
+                                             page_view_http_method: 'GET',
+                                             page_view_http_status: '200'
+                                           },
+                                           as: :json
+      end
+
+      it 'updates attribution as expected' do
+        post "/api/v1/visit?#{query_string}", params: body,
+                                              as: :json
+
+        expect(Land::Visit.where(cookie_id:).count).to eq(1)
+
+        visit = Land::Visit.find_by(visit_id:)
+
+        expect(visit.cookie_id).to eq(cookie_id)
+        expect(visit.visit_id).to eq(visit_id)
+        expect(visit.referer.domain).to eq('veterandebtassistance.org')
+        expect(visit.user_agent.user_agent).to eq(user_agent)
+        expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
+        expect(visit.raw_query_string).to eq(query_string)
+        expect(visit.click_id).to eq(fbclid)
+        expect(visit.attribution).to_not be_nil
+
+        expect(visit.attribution.campaign).to eq(utm_campaign)
+        expect(visit.attribution.content).to eq(utm_content)
+        expect(visit.attribution.medium).to eq(utm_medium)
+        expect(visit.attribution.source).to eq('instagram')
+        expect(visit.attribution.campaign_identifier).to eq(utm_campaign_id)
+        expect(visit.attribution.medium_identifier).to eq(utm_medium_id)
+        expect(visit.attribution.content_identifier).to eq(utm_content_id)
+      end
+    end
+  end
+
   context 'unit tests' do
     let(:cookie_id) { SecureRandom.uuid }
     let(:visit_id) { SecureRandom.uuid }
@@ -246,6 +325,16 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to match('/api/v1121/visit')
         expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to_not match('/api/v1/visitX')
         expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to_not match('/apii/v1/visit')
+      end
+    end
+
+    describe 'PAGEVIEW_ENDPOINT_REGEX' do
+      it 'matches the correct endpoint' do
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to be_a(Regexp)
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to match('/api/v1/tracking/page-view')
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to match('/api/v1121/tracking/page-view')
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to_not match('/api/v1/tracking/page-viewX')
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to_not match('/apii/v1/tracking/page-view')
       end
     end
   end

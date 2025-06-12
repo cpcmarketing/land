@@ -6,6 +6,7 @@ module Land
       attr_reader :pageview
 
       VISIT_ENDPOINT_REGEX = %r{^/api/v\d+/visit$}
+      PAGEVIEW_ENDPOINT_REGEX = %r{^/api/v\d+/tracking/page-view$}
 
       def track
         load
@@ -25,9 +26,13 @@ module Land
           maybe_set_visit_referer
           maybe_set_user_agent
           maybe_set_click_id
-
-          @visit&.save! if @visit&.changed?
         end
+
+        # When bots click links, we do not get cookies loaded, so no visit call is made
+        # This will set attribution if there is no visit call made
+        maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
+
+        @visit&.save! if @visit&.changed?
       rescue StandardError => e
         # Here we are going to tag the span with the error if Datadog span
         # exists This is called safely to avoid errors in the case that Datadog
@@ -87,10 +92,10 @@ module Land
         current_time = Time.now
 
         @pageview = Pageview.create do |p|
-          p.path                   = path || page_view_path || request.path.to_s
+          p.path                   = path || request.path.to_s
           p.http_method            = method || request.method
           p.mime_type              = request.media_type || request.format.to_s
-          p.query_string           = untracked_params.to_query.presence || page_view_query_string
+          p.query_string           = untracked_params.to_query
           p.request_id             = request.uuid
           p.click_id               = tracking_params['click_id']
           p.tiktok_pixel_cookie_id = tracking_params['tiktok_pixel_cookie_id']
@@ -99,16 +104,12 @@ module Land
           p.created_at             = current_time
           p.response_time          = (current_time - @start_time) * 1000
         end
-
-        maybe_update_visit_attribution
-
-        @pageview
       end
 
-      def maybe_update_visit_attribution
+      def maybe_set_visit_attribution_from_pageview
         return unless @visit && visit_attribution_empty? && page_view_query_string.present?
 
-        @visit.update!(attribution: attribution_from_page_view_query_string)
+        @visit.attribution = attribution_from_page_view_query_string
       end
 
       def attribution_from_page_view_query_string
