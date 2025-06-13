@@ -51,8 +51,7 @@ module Land
         return @visit_id if visit
 
         begin
-          @visit = Visit.create! do |visit|
-            visit.id               = @visit_id
+          @visit = Visit.where(visit_id: @visit_id).first_or_create do |visit|
             visit.attribution      = attribution
             visit.cookie_id        = @cookie_id
             visit.referer_id       = referer&.id
@@ -62,9 +61,9 @@ module Land
             visit.raw_query_string = referer_uri&.query
             visit.click_id         = tracking_params['click_id']
           end
+        rescue ActiveRecord::RecordNotUnique
           # This handles a race condition between the visit and other API requests
           # ex: page_views, events, feature_flags
-        rescue ActiveRecord::RecordNotUnique
           @visit = Visit.where(visit_id: @visit_id).first
         end
 
