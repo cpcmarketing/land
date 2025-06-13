@@ -51,7 +51,7 @@ module Land
         return @visit_id if visit
 
         begin
-          @visit = Visit.create do |visit|
+          @visit = Visit.create! do |visit|
             visit.id               = @visit_id
             visit.attribution      = attribution
             visit.cookie_id        = @cookie_id
@@ -100,7 +100,7 @@ module Land
           p.click_id               = tracking_params['click_id']
           p.tiktok_pixel_cookie_id = tracking_params['tiktok_pixel_cookie_id']
           p.http_status            = status || response.status
-          p.visit_id               = @visit_id
+          p.visit_id               = @visit.id
           p.created_at             = current_time
           p.response_time          = (current_time - @start_time) * 1000
         end
