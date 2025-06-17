@@ -6,6 +6,7 @@ module Land
       attr_reader :pageview
 
       VISIT_ENDPOINT_REGEX = %r{^/api/v\d+/visit$}
+      PAGEVIEW_ENDPOINT_REGEX = %r{^/api/v\d+/tracking/page-view$}
 
       def track
         load
@@ -25,9 +26,13 @@ module Land
           maybe_set_visit_referer
           maybe_set_user_agent
           maybe_set_click_id
-
-          @visit&.save! if @visit&.changed?
         end
+
+        # When bots click links, we do not get cookies loaded, so no visit call is made
+        # This will set attribution if there is no visit call made
+        maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
+
+        @visit&.save! if @visit&.changed?
       rescue StandardError => e
         # Here we are going to tag the span with the error if Datadog span
         # exists This is called safely to avoid errors in the case that Datadog
@@ -46,8 +51,7 @@ module Land
         return @visit_id if visit
 
         begin
-          @visit = Visit.create do |visit|
-            visit.id               = @visit_id
+          @visit = Visit.where(visit_id: @visit_id).first_or_create do |visit|
             visit.attribution      = attribution
             visit.cookie_id        = @cookie_id
             visit.referer_id       = referer&.id
@@ -57,9 +61,9 @@ module Land
             visit.raw_query_string = referer_uri&.query
             visit.click_id         = tracking_params['click_id']
           end
+        rescue ActiveRecord::RecordNotUnique
           # This handles a race condition between the visit and other API requests
           # ex: page_views, events, feature_flags
-        rescue ActiveRecord::RecordNotUnique
           @visit = Visit.where(visit_id: @visit_id).first
         end
 
@@ -95,10 +99,31 @@ module Land
           p.click_id               = tracking_params['click_id']
           p.tiktok_pixel_cookie_id = tracking_params['tiktok_pixel_cookie_id']
           p.http_status            = status || response.status
-          p.visit_id               = @visit_id
+          p.visit_id               = @visit.id
           p.created_at             = current_time
           p.response_time          = (current_time - @start_time) * 1000
         end
+      end
+
+      def maybe_set_visit_attribution_from_pageview
+        return unless @visit && visit_attribution_empty? && page_view_query_string.present?
+
+        @visit.attribution = attribution_from_page_view_query_string
+      end
+
+      def attribution_from_page_view_query_string
+        return unless page_view_query_string.present?
+
+        params = Rack::Utils.parse_nested_query(page_view_query_string)
+        Attribution.lookup extract_tracking(params)
+      end
+
+      def page_view_query_string
+        request && request.params['page_view_query_string']
+      end
+
+      def page_view_path
+        request && request.params['page_view_path']
       end
 
       # This is invoked from Land::Action
@@ -226,6 +251,10 @@ module Land
              .reject { |k, _v| %w[attribution_id created_at].include?(k) }
              .values
              .any?
+      end
+
+      def visit_attribution_empty?
+        !attribution_values_present?(@visit)
       end
     end
   end
