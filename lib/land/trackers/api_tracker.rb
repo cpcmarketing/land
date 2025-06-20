@@ -8,31 +8,10 @@ module Land
       VISIT_ENDPOINT_REGEX = %r{^/api/v\d+/visit$}
       PAGEVIEW_ENDPOINT_REGEX = %r{^/api/v\d+/tracking/page-view$}
 
+      # before_action Methods ---------------------------------
       def track
         load
         record_visit
-
-        # Api request race conditions mean that the visit may be created on a call
-        # that is not the visit call. Query strings are passed from the front end
-        # visit API call. If the visit is created on a different call, the query
-        # string will be updated whenever the visit API call is completed.
-
-        # Here we only invoke the visit attribution update if the request is a
-        # visit API call
-        if controller.request.path =~ VISIT_ENDPOINT_REGEX
-          maybe_set_raw_query_string
-          maybe_set_unaltered_ingress_url
-          maybe_set_visit_attribution
-          maybe_set_visit_referer
-          maybe_set_user_agent
-          maybe_set_click_id
-        end
-
-        # When bots click links, we do not get cookies loaded, so no visit call is made
-        # This will set attribution if there is no visit call made
-        maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
-
-        @visit&.save! if @visit&.changed?
       rescue StandardError => e
         # Here we are going to tag the span with the error if Datadog span
         # exists This is called safely to avoid errors in the case that Datadog
@@ -44,14 +23,30 @@ module Land
         Land.config.logger.error "Error recording visit: #{e.message}"
       end
 
-      # Overriding record_visit method as we set the visit id from the API param,
-      # so we have to check the Land::Visit does not exist
-      #
-      def record_visit
-        return @visit_id if visit
+      def load
+        last_visit = @last_visit ||= Land::Visit.where(cookie_id: @cookie)
+                                                .order(created_at: :desc)
+                                                .first
+
+        @cookie_id        = request.params['cookie_id']
+        @visit_id         = request.params['visit_id']
+        @last_visit_time  = last_visit&.created_at
+        @user_agent_hash  = Digest::SHA2.base64digest(raw_user_agent) if raw_user_agent
+        @attribution_hash = attribution_hash
+        @referer_hash     = Digest::SHA2.base64digest(referer_uri.to_s)
 
         begin
-          @visit = Visit.where(visit_id: @visit_id).first_or_create do |visit|
+          Cookie.find_or_create_by(cookie_id: @cookie_id)
+        rescue ActiveRecord::RecordNotUnique
+          retry
+        end
+      end
+
+      # Overriding record_visit method as we set the visit id from the API param,
+      # so we have to check the Land::Visit does not exist
+      def record_visit
+        Visit.transaction do
+          @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
             visit.attribution      = attribution
             visit.cookie_id        = @cookie_id
             visit.referer_id       = referer&.id
@@ -61,30 +56,87 @@ module Land
             visit.raw_query_string = referer_uri&.query
             visit.click_id         = tracking_params['click_id']
           end
-        rescue ActiveRecord::RecordNotUnique
-          # This handles a race condition between the visit and other API requests
-          # ex: page_views, events, feature_flags
-          @visit = Visit.where(visit_id: @visit_id).first
-        end
 
-        @visit_id
-      end
+          # Api request race conditions mean that the visit may be created on a call
+          # that is not the visit call. Query strings are passed from the front end
+          # visit API call. If the visit is created on a different call, the query
+          # string will be updated whenever the visit API call is completed.
 
-      def load
-        # create cookie prior to validating
-        @cookie_id = cookie_id = request.params['cookie_id']
+          # Here we only invoke the visit attribution update if the request is a
+          # visit API call
+          if controller.request.path =~ VISIT_ENDPOINT_REGEX
+            maybe_set_raw_query_string
+            maybe_set_unaltered_ingress_url
+            maybe_set_visit_attribution
+            maybe_set_visit_referer
+            maybe_set_user_agent
+            maybe_set_click_id
+          end
 
-        begin
-          Cookie.where(cookie_id:).first_or_create
+          # When bots click links, we do not get cookies loaded, so no visit call is made
+          # This will set attribution if there is no visit call made
+          maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
+
+          @visit&.save! if @visit&.changed?
         rescue ActiveRecord::RecordNotUnique
           retry
         end
 
-        @visit_id         = request.params['visit_id']
-        @last_visit_time  = last_visit&.created_at
-        @user_agent_hash  = Digest::SHA2.base64digest(raw_user_agent) if raw_user_agent
-        @attribution_hash = attribution_hash
-        @referer_hash     = Digest::SHA2.base64digest(referer_uri.to_s)
+        @visit.visit_id
+      end
+
+      def maybe_set_raw_query_string
+        return unless referer_uri.present? || @visit.raw_query_string.blank?
+
+        @visit.raw_query_string = referer_uri.query
+      end
+
+      def maybe_set_unaltered_ingress_url
+        return unless @visit.unaltered_ingress_url.blank? && unaltered_ingress_url.present?
+
+        @visit.unaltered_ingress_url = unaltered_ingress_url
+      end
+
+      def maybe_set_visit_attribution
+        return unless attribution? || attribution_values_present?
+
+        @visit.attribution = attribution
+      end
+
+      def maybe_set_visit_referer
+        return unless referer_uri.present? || @visit.referer.present?
+
+        @visit.referer_id = referer.id
+      end
+
+      def maybe_set_user_agent
+        return unless user_agent && @visit.user_agent.user_agent == Land.config.blank_user_agent_string
+
+        @visit.user_agent_id = user_agent.id
+      end
+
+      def maybe_set_click_id
+        return unless tracking_params['click_id'].present? && @visit.click_id.blank?
+
+        @visit.click_id = tracking_params['click_id']
+      end
+
+      def maybe_set_visit_attribution_from_pageview
+        return unless visit_attribution_empty? && page_view_query_string.present?
+
+        params = Rack::Utils.parse_nested_query(page_view_query_string)
+        @visit.attribution = Attribution.lookup extract_tracking(params)
+      end
+
+      # after_action Methods ---------------------------------
+      # This is invoked from Land::Action
+      def save
+        record_pageview
+
+        events.each do |e|
+          e.pageview = pageview
+          e.save!
+        end
       end
 
       def record_pageview(method: nil, path: nil)
@@ -105,18 +157,19 @@ module Land
         end
       end
 
-      def maybe_set_visit_attribution_from_pageview
-        return unless @visit && visit_attribution_empty? && page_view_query_string.present?
-
-        @visit.attribution = attribution_from_page_view_query_string
+      # Attribution Methods ---------------------------------
+      def attribution_values_present?
+        @visit.attribution
+              .attributes
+              .reject { |k, _v| %w[attribution_id created_at].include?(k) }
+              .values
+              .any?
       end
 
-      def attribution_from_page_view_query_string
-        return unless page_view_query_string.present?
+      def visit_attribution_empty? = !attribution_values_present?
 
-        params = Rack::Utils.parse_nested_query(page_view_query_string)
-        Attribution.lookup extract_tracking(params)
-      end
+      # Access Methods --------------------------------------------
+      def new_visit? = @visit.nil?
 
       def page_view_query_string
         request && request.params['page_view_query_string']
@@ -126,33 +179,22 @@ module Land
         request && request.params['page_view_path']
       end
 
-      # This is invoked from Land::Action
-      def save
-        record_pageview
-
-        events.each do |e|
-          e.pageview = pageview
-          e.save!
-        end
+      def raw_user_agent
+        @raw_user_agent ||= request.params['user_agent'] || Land.config.blank_user_agent_string
       end
 
-      def identify(identifier)
-        visit = @visit || Visit.find(@visit_id)
+      def referer_uri
+        return @referer_uri if @referer_uri
+        return unless unaltered_ingress_url.present?
 
-        owner = Owner[identifier]
-
-        visit.owner = owner
-        visit.save!
-
-        begin
-          Ownership.where(cookie_id: @cookie_id, owner_id: owner).first_or_create
-        rescue ActiveRecord::RecordNotUnique
-          retry
-        end
+        @referer_uri ||= Addressable::URI.parse(unaltered_ingress_url.sub(/\Awww\./i, '//\0'))
       end
 
-      # Access Methods --------------------------------------------
-      # Overriding user agent as it is set via params and not header in the API
+      def unaltered_ingress_url
+        @unaltered_ingress_url ||= request.params['unaltered_ingress_url']
+      end
+
+      # Overriding Tracker#user_agent as it is set via params and not header in the API
       def user_agent
         return @user_agent if @user_agent
 
@@ -177,93 +219,6 @@ module Land
         )
 
         @user_agent
-      end
-
-      def raw_user_agent
-        @raw_user_agent ||= request.params['user_agent'] || Land.config.blank_user_agent_string
-      end
-
-      def unaltered_ingress_url
-        @unaltered_ingress_url ||= request.params['unaltered_ingress_url']
-      end
-
-      def referer_uri
-        return @referer_uri if @referer_uri
-        return unless unaltered_ingress_url.present?
-
-        @referer_uri ||= Addressable::URI.parse(unaltered_ingress_url.sub(/\Awww\./i, '//\0'))
-      end
-
-      def visit
-        @visit ||= Land::Visit.where(visit_id: @visit_id)
-                              .first
-      end
-
-      def last_visit
-        @last_visit ||= Land::Visit.where(cookie_id: @cookie)
-                                   .order(created_at: :desc)
-                                   .first
-      end
-
-      def new_visit?
-        @visit.nil?
-      end
-
-      # Setting Methods - Needed in case visit does not get sent first --------------
-      def maybe_set_click_id
-        return unless @visit
-        return unless tracking_params['click_id'].present? && @visit.click_id.blank?
-
-        @visit.click_id = tracking_params['click_id']
-      end
-
-      def maybe_set_visit_attribution
-        return unless @visit
-        return unless attribution? || attribution_values_present?(visit)
-
-        @visit.attribution = attribution
-      end
-
-      def maybe_set_raw_query_string
-        return unless @visit
-        return unless referer_uri.present?
-        return unless @visit.raw_query_string.blank?
-
-        @visit.raw_query_string = referer_uri.query
-      end
-
-      def maybe_set_visit_referer
-        return unless @visit
-        return unless referer_uri.present? || @visit.referer.present?
-
-        @visit.referer_id = referer.id
-      end
-
-      def maybe_set_unaltered_ingress_url
-        return unless @visit
-        return unless @visit.unaltered_ingress_url.blank? && unaltered_ingress_url.present?
-
-        @visit.unaltered_ingress_url = unaltered_ingress_url
-      end
-
-      def maybe_set_user_agent
-        return unless @visit
-        return unless user_agent &&
-                      @visit.user_agent.user_agent == Land.config.blank_user_agent_string
-
-        @visit.user_agent_id = user_agent.id
-      end
-
-      def attribution_values_present?(visit)
-        visit.attribution
-             .attributes
-             .reject { |k, _v| %w[attribution_id created_at].include?(k) }
-             .values
-             .any?
-      end
-
-      def visit_attribution_empty?
-        !attribution_values_present?(@visit)
       end
     end
   end
