@@ -90,7 +90,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.user_agent.platform).to eq('Windows')
       expect(visit.user_agent.browser).to eq('Chrome')
       expect(visit.user_agent.browser_version).to eq('98')
-      
+
       expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
       expect(visit.raw_query_string).to eq(query_string)
       expect(visit.click_id).to eq(fbclid)
@@ -138,10 +138,10 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.visit_id).to eq(visit_id)
       expect(visit.referer).to eq(nil)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
-      expect(visit.user_agent.device).to eq(nil)
-      expect(visit.user_agent.platform).to eq(nil)
-      expect(visit.user_agent.browser).to eq(nil)
-      expect(visit.user_agent.browser_version).to eq(nil)
+      expect(visit.user_agent.device).to eq('Unknown')
+      expect(visit.user_agent.platform).to eq('Other')
+      expect(visit.user_agent.browser).to eq('Generic Browser')
+      expect(visit.user_agent.browser_version).to eq('0')
 
       expect(visit.unaltered_ingress_url).to eq(nil)
       expect(visit.raw_query_string).to eq(nil)
@@ -276,10 +276,10 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.cookie_id).to eq(cookie_id)
       expect(visit.visit_id).to eq(visit_id)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
-      expect(visit.user_agent.device).to eq(nil)
-      expect(visit.user_agent.platform).to eq(nil)
-      expect(visit.user_agent.browser).to eq(nil)
-      expect(visit.user_agent.browser_version).to eq(nil)
+      expect(visit.user_agent.device).to eq('Unknown')
+      expect(visit.user_agent.platform).to eq('Other')
+      expect(visit.user_agent.browser).to eq('Generic Browser')
+      expect(visit.user_agent.browser_version).to eq('0')
 
       expect(visit.attribution).to_not be_nil
       expect(visit.attribution.campaign).to eq(utm_campaign)
