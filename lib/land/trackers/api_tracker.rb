@@ -209,6 +209,15 @@ module Land
           @user_agent.update(user_agent_type: UserAgentType[user_agent_type])
         end
 
+        browser = ::Browser.new(user_agent)
+
+        @user_agent.update(
+          browser: Browser[browser.name],
+          device: Device[browser.device.name],
+          platform: Platform[browser.platform.name],
+          browser_version: browser.version
+        )
+
         @user_agent
       end
     end

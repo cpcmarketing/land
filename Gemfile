@@ -13,6 +13,8 @@ gemspec
 
 # gem "pry", github: "pry/pry"
 
+gem "browser", require: "browser/browser"
+
 group :development, :test do
   gem "combustion"
   gem "pry-rails"
