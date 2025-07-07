@@ -37,9 +37,12 @@ module Land
 
         begin
           Cookie.find_or_create_by(cookie_id: @cookie_id)
-        rescue ActiveRecord::RecordInvalid,
-               ActiveRecord::RecordNotUnique
+        rescue ActiveRecord::RecordNotUnique
           retry
+        rescue ActiveRecord::RecordInvalid => e
+          retry if e.message =~ /Validation failed: Cookie has already been taken/
+
+          raise e
         end
       end
 
@@ -79,9 +82,12 @@ module Land
           maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
 
           @visit&.save! if @visit&.changed?
-        rescue ActiveRecord::RecordInvalid,
-               ActiveRecord::RecordNotUnique
+        rescue ActiveRecord::RecordNotUnique
           retry
+        rescue ActiveRecord::RecordInvalid => e
+          retry if e.message =~ /Validation failed: Visit has already been taken/
+
+          raise e
         end
 
         @visit.visit_id
