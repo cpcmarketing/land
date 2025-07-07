@@ -139,8 +139,8 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.referer).to eq(nil)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
       expect(visit.user_agent.device).to eq('Unknown')
-      expect(visit.user_agent.platform).to eq('Other')
-      expect(visit.user_agent.browser).to eq('Generic Browser')
+      expect(visit.user_agent.platform).to eq('Unknown')
+      expect(visit.user_agent.browser).to eq('Unknown Browser')
       expect(visit.user_agent.browser_version).to eq('0')
 
       expect(visit.unaltered_ingress_url).to eq(nil)
@@ -216,7 +216,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     let(:cookie_id) { SecureRandom.uuid }
     let(:visit_id) { SecureRandom.uuid }
 
-    it 'record visit does not throw an error' do
+    it 'record visit rescues and retries on ActiveRecord::RecordNotUnique error' do
       allow(Land::Visit).to receive(:create)
         .and_raise(ActiveRecord::RecordNotUnique, 'Visit already exists')
         .and_call_original
@@ -232,10 +232,43 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
                                             as: :json
     end
 
-    it 'load does not throw error on cookie race condition' do
+    it 'record visit rescues and retries on ActiveRecord::RecordInvalid error' do
+      allow(Land::Visit).to receive(:create)
+        .and_raise(ActiveRecord::RecordInvalid, 'Visit already exists')
+        .and_call_original
+
+      # this is asserting that the `record_visit` call does not throw an error,
+      # as this method that is called after the `record_visit` call
+      expect_any_instance_of(Land::Trackers::ApiTracker)
+        .to receive(:maybe_set_raw_query_string)
+        .and_call_original
+
+      # visit call
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+    end
+
+    it 'load does not throw error on ActiveRecord::RecordNotUnique error' do
       allow(Land::Cookie)
         .to receive_message_chain(:where, :first_or_create)
         .and_raise(ActiveRecord::RecordNotUnique, 'Cookie already exists')
+        .and_return([])
+
+      # this is asserting that the `load` call does not throw an error,
+      # as this method that is called after the `load` call
+      expect_any_instance_of(Land::Trackers::ApiTracker)
+        .to receive(:record_visit)
+        .and_call_original
+
+      # visit call
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+    end
+
+    it 'load does not throw error on ActiveRecord::RecordInvalid error' do
+      allow(Land::Cookie)
+        .to receive_message_chain(:where, :first_or_create)
+        .and_raise(ActiveRecord::RecordInvalid, 'Cookie already exists')
         .and_return([])
 
       # this is asserting that the `load` call does not throw an error,
@@ -279,8 +312,8 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.visit_id).to eq(visit_id)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
       expect(visit.user_agent.device).to eq('Unknown')
-      expect(visit.user_agent.platform).to eq('Other')
-      expect(visit.user_agent.browser).to eq('Generic Browser')
+      expect(visit.user_agent.platform).to eq('Unknown')
+      expect(visit.user_agent.browser).to eq('Unknown Browser')
       expect(visit.user_agent.browser_version).to eq('0')
 
       expect(visit.attribution).to_not be_nil

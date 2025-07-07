@@ -37,7 +37,8 @@ module Land
 
         begin
           Cookie.find_or_create_by(cookie_id: @cookie_id)
-        rescue ActiveRecord::RecordNotUnique
+        rescue ActiveRecord::RecordInvalid,
+               ActiveRecord::RecordNotUnique
           retry
         end
       end
@@ -78,7 +79,8 @@ module Land
           maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
 
           @visit&.save! if @visit&.changed?
-        rescue ActiveRecord::RecordNotUnique
+        rescue ActiveRecord::RecordInvalid,
+               ActiveRecord::RecordNotUnique
           retry
         end
 
