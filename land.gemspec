@@ -44,6 +44,8 @@ Gem::Specification.new do |gem|
   gem.add_dependency "addressable"
   gem.add_dependency "activerecord", " > 4.0.0"
   gem.add_dependency "lookup_by",    "~> 0.12.0"
+  gem.add_dependency "browser",      "~> 6.2.0"
+  gem.add_dependency "mutex_m",    "~> 0.3.0"
 
   gem.add_development_dependency "pg"
   gem.add_development_dependency "rake"

@@ -139,8 +139,8 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.referer).to eq(nil)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
       expect(visit.user_agent.device).to eq('Unknown')
-      expect(visit.user_agent.platform).to eq('Other')
-      expect(visit.user_agent.browser).to eq('Generic Browser')
+      expect(visit.user_agent.platform).to eq('Unknown')
+      expect(visit.user_agent.browser).to eq('Unknown Browser')
       expect(visit.user_agent.browser_version).to eq('0')
 
       expect(visit.unaltered_ingress_url).to eq(nil)
@@ -279,8 +279,8 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.visit_id).to eq(visit_id)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
       expect(visit.user_agent.device).to eq('Unknown')
-      expect(visit.user_agent.platform).to eq('Other')
-      expect(visit.user_agent.browser).to eq('Generic Browser')
+      expect(visit.user_agent.platform).to eq('Unknown')
+      expect(visit.user_agent.browser).to eq('Unknown Browser')
       expect(visit.user_agent.browser_version).to eq('0')
 
       expect(visit.attribution).to_not be_nil
