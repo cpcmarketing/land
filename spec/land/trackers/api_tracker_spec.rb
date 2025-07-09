@@ -281,69 +281,111 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     let(:visit_id) { SecureRandom.uuid }
 
     it 'record visit rescues and retries on ActiveRecord::RecordNotUnique error' do
-      allow(Land::Visit).to receive(:create)
-        .and_raise(ActiveRecord::RecordNotUnique, 'Visit already exists')
-        .and_call_original
+      expect(Land::Visit.count).to eq(0)
 
-      # this is asserting that the `record_visit` call does not throw an error,
-      # as this method that is called after the `record_visit` call
-      expect_any_instance_of(Land::Trackers::ApiTracker)
-        .to receive(:maybe_set_raw_query_string)
-        .and_call_original
+      save_calls = 0
+      allow_any_instance_of(Land::Visit).to receive(:save!) do |visit|
+        save_calls += 1
+        raise ActiveRecord::RecordNotUnique if save_calls == 1
+
+        # Mimic the original implementation
+        expect(visit.persisted?).to eq(false)
+        expect(visit.valid?).to eq(true)
+        expect(visit.changed?).to eq(true)
+        visit.save
+        expect(visit.persisted?).to eq(true)
+      end
 
       # visit call
       post "/api/v1/visit?#{query_string}", params: body,
                                             as: :json
+
+      expect(save_calls).to eq(2)
+      expect(Land::Visit.count).to eq(1)
+      expect(Land::Visit.first.visit_id).to eq(visit_id)
     end
 
     it 'record visit rescues and retries on ActiveRecord::RecordInvalid error' do
-      allow(Land::Visit).to receive(:create)
-        .and_raise(ActiveRecord::RecordInvalid, 'Visit already exists')
-        .and_call_original
+      expect(Land::Visit.count).to eq(0)
 
-      # this is asserting that the `record_visit` call does not throw an error,
-      # as this method that is called after the `record_visit` call
-      expect_any_instance_of(Land::Trackers::ApiTracker)
-        .to receive(:maybe_set_raw_query_string)
-        .and_call_original
+      save_calls = 0
+      allow_any_instance_of(Land::Visit).to receive(:save!) do |visit|
+        save_calls += 1
+
+        if save_calls == 1
+          visit.errors.add(:base, 'Visit has already been taken')
+          raise ActiveRecord::RecordInvalid.new(visit)
+        end
+
+        # Mimic the original implementation
+        expect(visit.persisted?).to eq(false)
+        expect(visit.valid?).to eq(true)
+        expect(visit.changed?).to eq(true)
+        visit.save
+        expect(visit.persisted?).to eq(true)
+      end
 
       # visit call
       post "/api/v1/visit?#{query_string}", params: body,
                                             as: :json
+
+      expect(save_calls).to eq(2)
+      expect(Land::Visit.count).to eq(1)
+      expect(Land::Visit.first.visit_id).to eq(visit_id)
     end
 
     it 'load does not throw error on ActiveRecord::RecordNotUnique error' do
-      allow(Land::Cookie)
-        .to receive_message_chain(:where, :first_or_create)
-        .and_raise(ActiveRecord::RecordNotUnique, 'Cookie already exists')
-        .and_return([])
+      expect(Land::Cookie.count).to eq(0)
 
-      # this is asserting that the `load` call does not throw an error,
-      # as this method that is called after the `load` call
-      expect_any_instance_of(Land::Trackers::ApiTracker)
-        .to receive(:record_visit)
-        .and_call_original
+      find_or_create_calls = 0
+      allow(Land::Cookie).to receive(:find_or_create_by) do |attributes, &block|
+        find_or_create_calls += 1
+        raise ActiveRecord::RecordNotUnique if find_or_create_calls == 1
+
+        expect(Land::Cookie.count).to eq(0)
+
+        # this mirrors the implementation of Land::Cookie.find_or_create_by
+        # source code: https://github.com/rails/rails/blob/b0405f820a4acf3fae85044c71a819967fd59967/activerecord/lib/active_record/relation.rb#L231
+        Land::Cookie.find_by(attributes) || Land::Cookie.create_or_find_by(attributes, &block)
+      end
 
       # visit call
       post "/api/v1/visit?#{query_string}", params: body,
                                             as: :json
+
+      expect(find_or_create_calls).to eq(2)
+
+      expect(Land::Cookie.count).to eq(1)
+      expect(Land::Cookie.first.cookie_id).to eq(cookie_id)
     end
 
     it 'load does not throw error on ActiveRecord::RecordInvalid error' do
-      allow(Land::Cookie)
-        .to receive_message_chain(:where, :first_or_create)
-        .and_raise(ActiveRecord::RecordInvalid, 'Cookie already exists')
-        .and_return([])
+      expect(Land::Cookie.count).to eq(0)
 
-      # this is asserting that the `load` call does not throw an error,
-      # as this method that is called after the `load` call
-      expect_any_instance_of(Land::Trackers::ApiTracker)
-        .to receive(:record_visit)
-        .and_call_original
+      find_or_create_calls = 0
+      allow(Land::Cookie).to receive(:find_or_create_by) do |attributes, &block|
+        find_or_create_calls += 1
+
+        if find_or_create_calls == 1
+          cookie = Land::Cookie.new(cookie_id: cookie_id)
+          cookie.errors.add(:base, 'Cookie has already been taken')
+          raise ActiveRecord::RecordInvalid.new(cookie)
+        end
+
+        expect(Land::Cookie.count).to eq(0)
+
+        # this mirrors the implementation of Land::Cookie.find_or_create_by
+        # source code: https://github.com/rails/rails/blob/b0405f820a4acf3fae85044c71a819967fd59967/activerecord/lib/active_record/relation.rb#L231
+        Land::Cookie.find_by(attributes) || Land::Cookie.create_or_find_by(attributes, &block)
+      end
 
       # visit call
       post "/api/v1/visit?#{query_string}", params: body,
                                             as: :json
+
+      expect(find_or_create_calls).to eq(2)
+      expect(Land::Cookie.count).to eq(1)
+      expect(Land::Cookie.first.cookie_id).to eq(cookie_id)
     end
   end
 
