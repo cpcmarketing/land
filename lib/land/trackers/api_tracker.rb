@@ -40,7 +40,7 @@ module Land
         rescue ActiveRecord::RecordNotUnique
           retry
         rescue ActiveRecord::RecordInvalid => e
-          retry if e.message =~ /Validation failed: Cookie has already been taken/
+          retry if e.message == 'Validation failed: Cookie has already been taken'
 
           raise e
         end
@@ -49,48 +49,44 @@ module Land
       # Overriding record_visit method as we set the visit id from the API param,
       # so we have to check the Land::Visit does not exist
       def record_visit
-        Visit.transaction do
-          @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
-            visit.attribution      = attribution
-            visit.cookie_id        = @cookie_id
-            visit.referer_id       = referer&.id
-            visit.user_agent_id    = user_agent&.id
-            visit.ip_address       = remote_ip
-            visit.domain_id        = request_domain&.id
-            visit.raw_query_string = referer_uri&.query
-            visit.click_id         = tracking_params['click_id']
-          end
-
-          # Api request race conditions mean that the visit may be created on a call
-          # that is not the visit call. Query strings are passed from the front end
-          # visit API call. If the visit is created on a different call, the query
-          # string will be updated whenever the visit API call is completed.
-
-          # Here we only invoke the visit attribution update if the request is a
-          # visit API call
-          if controller.request.path =~ VISIT_ENDPOINT_REGEX
-            maybe_set_raw_query_string
-            maybe_set_unaltered_ingress_url
-            maybe_set_visit_attribution
-            maybe_set_visit_referer
-            maybe_set_user_agent
-            maybe_set_click_id
-          end
-
-          # When bots click links, we do not get cookies loaded, so no visit call is made
-          # This will set attribution if there is no visit call made
-          maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
-
-          @visit&.save! if @visit&.changed?
-        rescue ActiveRecord::RecordNotUnique
-          retry
-        rescue ActiveRecord::RecordInvalid => e
-          retry if e.message =~ /Validation failed: Visit has already been taken/
-
-          raise e
+        @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
+          visit.attribution = attribution
+          visit.cookie_id        = @cookie_id
+          visit.referer_id       = referer&.id
+          visit.user_agent_id    = user_agent&.id
+          visit.ip_address       = remote_ip
+          visit.domain_id        = request_domain&.id
+          visit.raw_query_string = referer_uri&.query
+          visit.click_id         = tracking_params['click_id']
         end
 
-        @visit.visit_id
+        # Api request race conditions mean that the visit may be created on a call
+        # that is not the visit call. Query strings are passed from the front end
+        # visit API call. If the visit is created on a different call, the query
+        # string will be updated whenever the visit API call is completed.
+
+        # Here we only invoke the visit attribution update if the request is a
+        # visit API call
+        if controller.request.path =~ VISIT_ENDPOINT_REGEX
+          maybe_set_raw_query_string
+          maybe_set_unaltered_ingress_url
+          maybe_set_visit_attribution
+          maybe_set_visit_referer
+          maybe_set_user_agent
+          maybe_set_click_id
+        end
+
+        # When bots click links, we do not get cookies loaded, so no visit call is made
+        # This will set attribution if there is no visit call made
+        maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
+
+        @visit&.save! if @visit&.changed?
+      rescue ActiveRecord::RecordNotUnique
+        retry
+      rescue ActiveRecord::RecordInvalid => e
+        retry if e.message == 'Validation failed: Visit has already been taken'
+
+        raise e
       end
 
       def maybe_set_raw_query_string
