@@ -13,7 +13,6 @@ Combustion.initialize! :active_record,
                        load_schema: false,
                        database_migrate: false
 
-
 require 'land'
 
 Land.configure do |config|
@@ -41,8 +40,6 @@ Land.configure do |config|
   # Timeout before a new visit is created
   config.visit_timeout = 1.hour
 end
-
-
 
 require 'spec_helper'
 
