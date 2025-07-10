@@ -202,11 +202,13 @@ module Land
                      Land.config.blank_user_agent_string
 
         @user_agent = UserAgent[user_agent]
+        @user_agent.update(user_agent_type: UserAgentType['user'])
 
         if Land.config.identify_crawlers && defined?(CrawlerDetect)
           crawler_detect = CrawlerDetect.new(user_agent)
-          user_agent_type = crawler_detect.is_crawler? ? 'crawl' : 'api'
-          @user_agent.update(user_agent_type: UserAgentType[user_agent_type])
+          if crawler_detect.is_crawler?
+            @user_agent.update(user_agent_type: UserAgentType['crawl'])
+          end
         end
 
         browser = ::Browser.new(user_agent)
