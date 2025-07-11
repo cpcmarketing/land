@@ -17,6 +17,7 @@ module Land
         # exists This is called safely to avoid errors in the case that Datadog
         # is not present
         log_error(e)
+        Land.config.logger.error "Error recording visit: #{e.message}"
       end
 
       def load
@@ -218,7 +219,7 @@ module Land
           unless @user_agent.save
             error = @user_agent.errors.full_messages.join(', ')
             log_error(error)
-            Rails.logger.error "UserAgent save error: #{meta[:message]}"
+            Land.config.logger.error "UserAgent save error: #{error}"
           end
         end
 
@@ -229,7 +230,7 @@ module Land
         if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
           Datadog::Tracing.active_span&.set_error(error)
         end
-        Rails.logger.error "Land::Trackers::ApiTracker Error: #{error}"
+        Land.config.logger.error "Land::Trackers::ApiTracker Error: #{error}"
       end
     end
   end
