@@ -16,11 +16,7 @@ module Land
         # Here we are going to tag the span with the error if Datadog span
         # exists This is called safely to avoid errors in the case that Datadog
         # is not present
-        if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
-          Datadog::Tracing.active_span&.set_error(e)
-        end
-
-        Land.config.logger.error "Error recording visit: #{e.message}"
+        log_error(e)
       end
 
       def load
@@ -218,9 +214,22 @@ module Land
         @user_agent.platform = Platform[browser.platform.name]
         @user_agent.browser_version = browser.version
 
-        @user_agent.save! if @user_agent.changed?
+        if @user_agent.changed?
+          unless @user_agent.save
+            error = @user_agent.errors.full_messages.join(', ')
+            log_error(error)
+            Rails.logger.error "UserAgent save error: #{meta[:message]}"
+          end
+        end
 
         @user_agent
+      end
+
+      def log_error(error)
+        if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+          Datadog::Tracing.active_span&.set_error(error)
+        end
+        Rails.logger.error "Land::Trackers::ApiTracker Error: #{error}"
       end
     end
   end
