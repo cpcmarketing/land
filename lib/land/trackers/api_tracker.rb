@@ -219,7 +219,6 @@ module Land
           unless @user_agent.save
             error = @user_agent.errors.full_messages.join(', ')
             log_error(error)
-            Land.config.logger.error "UserAgent save error: #{error}"
           end
         end
 
