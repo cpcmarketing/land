@@ -17,13 +17,6 @@ CREATE SCHEMA land;
 
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
---
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -488,7 +481,8 @@ ALTER SEQUENCE land.device_types_device_type_id_seq OWNED BY land.device_types.d
 
 CREATE TABLE land.devices (
     device_id bigint NOT NULL,
-    device text NOT NULL
+    device text NOT NULL,
+    device_resolution_id uuid
 );
 
 
@@ -1084,16 +1078,16 @@ ALTER SEQUENCE land.referers_referer_id_seq OWNED BY land.referers.referer_id;
 --
 
 CREATE VIEW land.response_times_by_path AS
- SELECT agg.path_id,
-    agg.path,
-    agg."avg response time (ms)"
+ SELECT path_id,
+    path,
+    "avg response time (ms)"
    FROM ( SELECT p.path_id,
             p.path,
             round(avg(pv.response_time), 3) AS "avg response time (ms)"
            FROM (land.pageviews pv
              JOIN land.paths p USING (path_id))
           GROUP BY p.path_id, p.path) agg
-  ORDER BY agg."avg response time (ms)" DESC;
+  ORDER BY "avg response time (ms)" DESC;
 
 
 --
@@ -1254,7 +1248,8 @@ CREATE TABLE land.user_agents (
     browser_id smallint,
     browser_version text,
     user_agent text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    device_resolution_id uuid
 );
 
 
@@ -1306,6 +1301,20 @@ CREATE TABLE land.visits (
 CREATE TABLE public.ar_internal_metadata (
     key character varying NOT NULL,
     value character varying,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: device_resolutions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.device_resolutions (
+    device_resolution_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    device_resolution character varying NOT NULL,
+    width integer NOT NULL,
+    height integer NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL
 );
@@ -1986,6 +1995,14 @@ ALTER TABLE ONLY public.ar_internal_metadata
 
 
 --
+-- Name: device_resolutions device_resolutions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.device_resolutions
+    ADD CONSTRAINT device_resolutions_pkey PRIMARY KEY (device_resolution_id);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2288,6 +2305,13 @@ CREATE UNIQUE INDEX http_methods__u_http_method ON land.http_methods USING btree
 
 
 --
+-- Name: index_devices_on_device_resolution_id; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_devices_on_device_resolution_id ON land.devices USING btree (device_resolution_id);
+
+
+--
 -- Name: index_land.events_on_created_at; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -2306,6 +2330,13 @@ CREATE INDEX "index_land.events_on_request_id" ON land.events USING btree (reque
 --
 
 CREATE INDEX "index_land.pageviews_on_created_at" ON land.pageviews USING btree (created_at);
+
+
+--
+-- Name: index_user_agents_on_device_resolution_id; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_user_agents_on_device_resolution_id ON land.user_agents USING btree (device_resolution_id);
 
 
 --
@@ -2537,6 +2568,27 @@ CREATE INDEX visits_referer_id_idx ON land.visits USING btree (referer_id);
 --
 
 CREATE INDEX visits_user_agent_id_idx ON land.visits USING btree (user_agent_id);
+
+
+--
+-- Name: index_device_resolutions_on_device_resolution; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_device_resolution ON public.device_resolutions USING btree (device_resolution);
+
+
+--
+-- Name: index_device_resolutions_on_height; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_height ON public.device_resolutions USING btree (height);
+
+
+--
+-- Name: index_device_resolutions_on_width; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_width ON public.device_resolutions USING btree (width);
 
 
 --
@@ -2898,6 +2950,7 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20250715193037'),
 ('20241218175001'),
 ('20241209201633'),
 ('20231211214820'),
