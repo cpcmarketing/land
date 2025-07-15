@@ -268,7 +268,10 @@ ALTER SEQUENCE land.brands_brand_id_seq OWNED BY land.brands.brand_id;
 
 CREATE TABLE land.browsers (
     browser_id smallint NOT NULL,
-    browser text NOT NULL
+    browser text NOT NULL,
+    dark_mode boolean,
+    light_mode boolean,
+    no_preference boolean
 );
 
 
@@ -447,6 +450,21 @@ ALTER SEQUENCE land.creatives_creative_id_seq OWNED BY land.creatives.creative_i
 
 
 --
+-- Name: device_resolutions; Type: TABLE; Schema: land; Owner: -
+--
+
+CREATE TABLE land.device_resolutions (
+    device_resolution_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    device_resolution character varying,
+    width integer,
+    height integer,
+    orientation character varying,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
 -- Name: device_types; Type: TABLE; Schema: land; Owner: -
 --
 
@@ -481,8 +499,7 @@ ALTER SEQUENCE land.device_types_device_type_id_seq OWNED BY land.device_types.d
 
 CREATE TABLE land.devices (
     device_id bigint NOT NULL,
-    device text NOT NULL,
-    device_resolution_id uuid
+    device text NOT NULL
 );
 
 
@@ -1307,20 +1324,6 @@ CREATE TABLE public.ar_internal_metadata (
 
 
 --
--- Name: device_resolutions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.device_resolutions (
-    device_resolution_id uuid DEFAULT gen_random_uuid() NOT NULL,
-    device_resolution character varying NOT NULL,
-    width integer NOT NULL,
-    height integer NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
-);
-
-
---
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1723,6 +1726,14 @@ ALTER TABLE ONLY land.creatives
 
 
 --
+-- Name: device_resolutions device_resolutions_pkey; Type: CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.device_resolutions
+    ADD CONSTRAINT device_resolutions_pkey PRIMARY KEY (device_resolution_id);
+
+
+--
 -- Name: device_types device_types_pkey; Type: CONSTRAINT; Schema: land; Owner: -
 --
 
@@ -1992,14 +2003,6 @@ ALTER TABLE ONLY land.visits
 
 ALTER TABLE ONLY public.ar_internal_metadata
     ADD CONSTRAINT ar_internal_metadata_pkey PRIMARY KEY (key);
-
-
---
--- Name: device_resolutions device_resolutions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.device_resolutions
-    ADD CONSTRAINT device_resolutions_pkey PRIMARY KEY (device_resolution_id);
 
 
 --
@@ -2305,10 +2308,45 @@ CREATE UNIQUE INDEX http_methods__u_http_method ON land.http_methods USING btree
 
 
 --
--- Name: index_devices_on_device_resolution_id; Type: INDEX; Schema: land; Owner: -
+-- Name: index_browsers_on_color_scheme_preferences; Type: INDEX; Schema: land; Owner: -
 --
 
-CREATE INDEX index_devices_on_device_resolution_id ON land.devices USING btree (device_resolution_id);
+CREATE INDEX index_browsers_on_color_scheme_preferences ON land.browsers USING btree (dark_mode, light_mode, no_preference);
+
+
+--
+-- Name: index_device_resolutions_on_device_resolution; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_device_resolution ON land.device_resolutions USING btree (device_resolution);
+
+
+--
+-- Name: index_device_resolutions_on_dims_and_orientation; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_dims_and_orientation ON land.device_resolutions USING btree (width, height, orientation);
+
+
+--
+-- Name: index_device_resolutions_on_height; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_height ON land.device_resolutions USING btree (height);
+
+
+--
+-- Name: index_device_resolutions_on_orientation; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_orientation ON land.device_resolutions USING btree (orientation);
+
+
+--
+-- Name: index_device_resolutions_on_width; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_width ON land.device_resolutions USING btree (width);
 
 
 --
@@ -2568,27 +2606,6 @@ CREATE INDEX visits_referer_id_idx ON land.visits USING btree (referer_id);
 --
 
 CREATE INDEX visits_user_agent_id_idx ON land.visits USING btree (user_agent_id);
-
-
---
--- Name: index_device_resolutions_on_device_resolution; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_device_resolutions_on_device_resolution ON public.device_resolutions USING btree (device_resolution);
-
-
---
--- Name: index_device_resolutions_on_height; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_device_resolutions_on_height ON public.device_resolutions USING btree (height);
-
-
---
--- Name: index_device_resolutions_on_width; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_device_resolutions_on_width ON public.device_resolutions USING btree (width);
 
 
 --
