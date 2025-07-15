@@ -57,6 +57,8 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
   end
 
   let!(:unaltered_ingress_url) { "https://veterandebtassistance.org/social?#{query_string}" }
+  let!(:device_resolution) { { width: 1920, height: 1080, orientation: 'landscape-primary' } }
+  let!(:color_scheme_preference) { { is_dark_mode: 'false', is_light_mode: 'true', is_no_preference: 'false' } }
 
   let!(:body) do
     {
@@ -64,7 +66,9 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       visit_id:,
       referer: unaltered_ingress_url,
       user_agent:,
-      unaltered_ingress_url:
+      unaltered_ingress_url:,
+      device_resolution:,
+      color_scheme_preference:
     }
   end
 
@@ -91,6 +95,20 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.user_agent.platform).to eq('Windows')
       expect(visit.user_agent.browser).to eq('Chrome')
       expect(visit.user_agent.browser_version).to eq('98')
+      expect(visit.user_agent.device_resolution).to eq('1920x1080')
+
+      device_resolution = Land::DeviceResolution.find_by(device_resolution_id: visit.user_agent.device_resolution_id)
+
+      expect(device_resolution.device_resolution_id).to eq(visit.user_agent.device_resolution_id)
+      expect(device_resolution.device_resolution).to eq('1920x1080')
+      expect(device_resolution.width).to eq(1920)
+      expect(device_resolution.height).to eq(1080)
+      expect(device_resolution.orientation).to eq('landscape-primary')
+
+      browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
+      expect(browser.dark_mode).to eq(false)
+      expect(browser.light_mode).to eq(true)
+      expect(browser.no_preference).to eq(false)
 
       expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
       expect(visit.raw_query_string).to eq(query_string)

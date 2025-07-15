@@ -176,6 +176,36 @@ module Land
         request && request.params['page_view_path']
       end
 
+      def device_width
+        request && request.params.dig('device_resolution', 'width')
+      end
+
+      def device_height
+        request && request.params.dig('device_resolution', 'height')
+      end
+
+      def device_resolution
+        return nil unless request && request.params['device_resolution']
+
+        "#{device_width}x#{device_height}"
+      end
+
+      def device_orientation
+        request && request.params.dig('device_resolution', 'orientation')
+      end
+
+      def dark_mode
+        request && request.params.dig('color_scheme_preference', 'is_dark_mode')
+      end
+
+      def light_mode
+        request && request.params.dig('color_scheme_preference', 'is_light_mode')
+      end
+
+      def no_preference
+        request && request.params.dig('color_scheme_preference', 'is_no_preference')
+      end
+
       def raw_user_agent
         @raw_user_agent ||= request.params['user_agent'] || Land.config.blank_user_agent_string
       end
@@ -203,26 +233,50 @@ module Land
 
         if Land.config.identify_crawlers && defined?(CrawlerDetect)
           crawler_detect = CrawlerDetect.new(user_agent)
-          if crawler_detect.is_crawler?
-            @user_agent.user_agent_type = UserAgentType['crawl']
-          end
+          @user_agent.user_agent_type = UserAgentType['crawl'] if crawler_detect.is_crawler?
         end
 
         browser = ::Browser.new(user_agent)
+
+        update_device_resolution
+        update_browser_color_preferences(Browser[browser.name])
 
         @user_agent.browser = Browser[browser.name]
         @user_agent.device = Device[browser.device.name]
         @user_agent.platform = Platform[browser.platform.name]
         @user_agent.browser_version = browser.version
+        @user_agent.device_resolution = DeviceResolution[device_resolution]
 
-        if @user_agent.changed?
-          unless @user_agent.save
-            error = @user_agent.errors.full_messages.join(', ')
-            log_error(error)
-          end
+        if @user_agent.changed? && !@user_agent.save
+          error = @user_agent.errors.full_messages.join(', ')
+          log_error(error)
         end
 
         @user_agent
+      end
+
+      def update_device_resolution
+        resolution = DeviceResolution[device_resolution]
+        return unless resolution.persisted?
+
+        resolution.width = device_width
+        resolution.height = device_height
+        resolution.orientation = device_orientation
+        resolution.save if resolution.changed?
+      rescue StandardError => e
+        log_error("Error updating device resolution: #{e.message}")
+      end
+
+      def update_browser_color_preferences(browser)
+        return unless browser
+
+        browser.dark_mode = dark_mode
+        browser.light_mode = light_mode
+        browser.no_preference = no_preference
+
+        browser.save if browser.changed?
+      rescue StandardError => e
+        log_error("Error updating browser color preferences: #{e.message}")
       end
 
       def log_error(error)
