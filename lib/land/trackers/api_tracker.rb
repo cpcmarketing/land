@@ -256,12 +256,13 @@ module Land
       end
 
       def update_device_resolution
-        resolution = DeviceResolution[device_resolution]
-        return unless resolution.persisted?
+        return unless device_resolution.present? && (device_width || device_height || device_orientation)
 
+        resolution = DeviceResolution[device_resolution]
         resolution.width = device_width
         resolution.height = device_height
         resolution.orientation = device_orientation
+
         resolution.save if resolution.changed?
       rescue StandardError => e
         log_error("Error updating device resolution: #{e.message}")
