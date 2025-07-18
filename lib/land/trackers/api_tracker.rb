@@ -16,7 +16,7 @@ module Land
         # Here we are going to tag the span with the error if Datadog span
         # exists This is called safely to avoid errors in the case that Datadog
         # is not present
-        log_error(e)
+        add_error_tag_to_land_span(e)
         Land.config.logger.error "Error recording visit: #{e.message}"
       end
 
@@ -247,9 +247,10 @@ module Land
         @user_agent.browser_version = browser.version
         @user_agent.device_resolution = DeviceResolution[device_resolution]
 
-        if @user_agent.changed? && !@user_agent.save
-          error = @user_agent.errors.full_messages.join(', ')
-          log_error(error)
+        begin
+          @user_agent.save! if @user_agent.changed?
+        rescue Standard::Error => e
+          add_error_tag_to_land_span(e)
         end
 
         @user_agent
@@ -263,9 +264,9 @@ module Land
         resolution.height = device_height
         resolution.orientation = device_orientation
 
-        resolution.save if resolution.changed?
+        resolution.save! if resolution.changed?
       rescue StandardError => e
-        log_error("Error updating device resolution: #{e.message}")
+        add_error_tag_to_land_span(e)
       end
 
       def update_browser_color_preferences(browser)
@@ -275,12 +276,12 @@ module Land
         browser.light_mode = light_mode
         browser.no_preference = no_preference
 
-        browser.save if browser.changed?
+        browser.save! if browser.changed?
       rescue StandardError => e
-        log_error("Error updating browser color preferences: #{e.message}")
+        add_error_tag_to_land_span(e)
       end
 
-      def log_error(error)
+      def add_error_tag_to_land_span(error)
         if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
           Datadog::Tracing.active_span&.set_error(error)
         end
