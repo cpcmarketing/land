@@ -1,5 +1,5 @@
 class AddDeviceResolutionLookupTable < ActiveRecord::Migration[7.1]
-  def up
+  def change
     create_table "land.device_resolutions", id: :uuid, default: 'gen_random_uuid()', primary_key: :device_resolution_id do |t|
       t.string :device_resolution, index: true 
       t.integer :width, index: true
@@ -18,17 +18,5 @@ class AddDeviceResolutionLookupTable < ActiveRecord::Migration[7.1]
     add_column "land.browsers", :light_mode, :boolean
     add_column "land.browsers", :no_preference, :boolean
     add_index "land.browsers", [:dark_mode, :light_mode, :no_preference], name: 'index_browsers_on_color_scheme_preferences'
-  end
-
-  def down
-    remove_index "land.browsers", name: 'index_browsers_on_color_scheme_preferences'
-    remove_column "land.browsers", :no_preference
-    remove_column "land.browsers", :light_mode
-    remove_column "land.browsers", :dark_mode
-
-    remove_index "land.user_agents", name: 'index_user_agents_on_device_resolution_id'
-    remove_column "land.user_agents", :device_resolution_id
-
-    drop_table "land.device_resolutions", if_exists: true
   end
 end
