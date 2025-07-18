@@ -264,9 +264,11 @@ module Land
         resolution.height = device_height
         resolution.orientation = device_orientation
 
-        resolution.save! if resolution.changed?
-      rescue StandardError => e
-        add_error_tag_to_land_span(e)
+        begin
+          resolution.save! if resolution.changed?
+        rescue StandardError => e
+          add_error_tag_to_land_span(e)
+        end
       end
 
       def update_browser_color_preferences(browser)
@@ -276,9 +278,11 @@ module Land
         browser.light_mode = light_mode
         browser.no_preference = no_preference
 
-        browser.save! if browser.changed?
-      rescue StandardError => e
-        add_error_tag_to_land_span(e)
+        begin
+          browser.save! if browser.changed?
+        rescue StandardError => e
+          add_error_tag_to_land_span(e)
+        end
       end
 
       def add_error_tag_to_land_span(error)

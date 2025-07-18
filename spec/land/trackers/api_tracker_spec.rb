@@ -58,6 +58,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
 
   let!(:unaltered_ingress_url) { "https://veterandebtassistance.org/social?#{query_string}" }
   let!(:device_resolution) { { width: 1920, height: 1080, orientation: 'landscape-primary' } }
+  let!(:computer_device_resolution) { { width: 1920, height: 1080, orientation: 'landscape-secondary' } }
   let!(:color_scheme_preference) { { is_dark_mode: 'false', is_light_mode: 'true', is_no_preference: 'false' } }
 
   let!(:body) do
@@ -69,6 +70,18 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       unaltered_ingress_url:,
       device_resolution:,
       color_scheme_preference:
+    }
+  end
+
+  let!(:updated_body) do
+    {
+      cookie_id:,
+      visit_id:,
+      referer: unaltered_ingress_url,
+      user_agent: "#{user_agent} Chrome/99.0.4758.102",
+      unaltered_ingress_url:,
+      device_resolution: computer_device_resolution,
+      color_scheme_preference: { is_dark_mode: 'true', is_light_mode: 'false', is_no_preference: 'false' }
     }
   end
 
@@ -415,6 +428,129 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(visit.attribution.content_identifier).to eq(utm_content_id)
       end
     end
+  end
+
+  context 'two visits with different device resolutions' do 
+    context 'and it update the device resolution when the device resolutions are different' do
+      let(:cookie_id) { SecureRandom.uuid }
+      let(:visit_id) { SecureRandom.uuid }
+
+      it 'updates the device resolution as expected' do
+        post "/api/v1/visit?#{query_string}", params: body,
+                                              as: :json
+        expect(Land::Visit.where(cookie_id:).count).to eq(1)
+
+        visit = Land::Visit.find_by(visit_id:)
+
+        expect(visit.cookie_id).to eq(cookie_id)
+        expect(visit.visit_id).to eq(visit_id)
+        expect(visit.referer.domain).to eq('veterandebtassistance.org')
+        expect(visit.user_agent.user_agent).to eq(user_agent)
+        expect(visit.user_agent.user_agent_type).to eq('user')
+        expect(visit.user_agent.device).to eq('Unknown')
+        expect(visit.user_agent.platform).to eq('Windows')
+        expect(visit.user_agent.browser).to eq('Chrome')
+        expect(visit.user_agent.browser_version).to eq('98')
+        expect(visit.user_agent.device_resolution).to eq('1920x1080')
+
+        expect(Land::DeviceResolution.count).to eq(1)
+        device_resolution = Land::DeviceResolution.find_by(device_resolution_id: visit.user_agent.device_resolution_id)
+
+        expect(device_resolution.device_resolution_id).to eq(visit.user_agent.device_resolution_id)
+        expect(device_resolution.device_resolution).to eq('1920x1080')
+        expect(device_resolution.width).to eq(1920)
+        expect(device_resolution.height).to eq(1080)
+        expect(device_resolution.orientation).to eq('landscape-primary')
+
+        expect(Land::Browser.count).to eq(1)
+        browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
+        expect(browser.dark_mode).to eq(false)
+        expect(browser.light_mode).to eq(true)
+        expect(browser.no_preference).to eq(false)
+
+        expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
+        expect(visit.raw_query_string).to eq(query_string)
+        expect(visit.click_id).to eq(fbclid)
+        expect(visit.attribution).to_not be_nil
+
+        expect(visit.attribution.campaign).to eq(utm_campaign)
+        expect(visit.attribution.content).to eq(utm_content)
+        expect(visit.attribution.medium).to eq(utm_medium)
+        expect(visit.attribution.source).to eq('instagram')
+        expect(visit.attribution.campaign_identifier).to eq(utm_campaign_id)
+        expect(visit.attribution.medium_identifier).to eq(utm_medium_id)
+        expect(visit.attribution.content_identifier).to eq(utm_content_id)
+
+
+        expect(Land::Pageview.count).to eq(1)
+        pageview = Land::Pageview.find_by(visit_id:)
+  
+        expect(pageview.visit_id).to eq(visit_id)
+        expect(pageview.path).to eq('/api/v1/visit')
+        expect(pageview.query_string).to eq('untracked_query_param=its-untracked')
+        expect(pageview.mime_type).to eq('application/json')
+        expect(pageview.http_method).to eq('POST')
+        expect(pageview.click_id).to eq(fbclid)
+        expect(pageview.http_status).to eq(200)
+        expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
+
+        post "/api/v1/visit?#{query_string}", params: updated_body,
+                                              as: :json
+
+        visit.reload
+
+        expect(visit.cookie_id).to eq(cookie_id)
+        expect(visit.visit_id).to eq(visit_id)
+        expect(visit.referer.domain).to eq('veterandebtassistance.org')
+        expect(visit.user_agent.user_agent).to eq(user_agent)
+        expect(visit.user_agent.user_agent_type).to eq('user')
+        expect(visit.user_agent.device).to eq('Unknown')
+        expect(visit.user_agent.platform).to eq('Windows')
+        expect(visit.user_agent.browser).to eq('Chrome')
+        expect(visit.user_agent.browser_version).to eq('98')
+        expect(visit.user_agent.device_resolution).to eq('1920x1080')
+
+        expect(Land::DeviceResolution.count).to eq(1)
+        device_resolution = Land::DeviceResolution.find_by(device_resolution_id: visit.user_agent.device_resolution_id)
+
+        expect(device_resolution.device_resolution_id).to eq(visit.user_agent.device_resolution_id)
+        expect(device_resolution.device_resolution).to eq('1920x1080')
+        expect(device_resolution.width).to eq(1920)
+        expect(device_resolution.height).to eq(1080)
+        expect(device_resolution.orientation).to eq('landscape-secondary')
+
+        expect(Land::Browser.count).to eq(1)
+        browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
+        expect(browser.dark_mode).to eq(true)
+        expect(browser.light_mode).to eq(false)
+        expect(browser.no_preference).to eq(false)
+
+        expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
+        expect(visit.raw_query_string).to eq(query_string)
+        expect(visit.click_id).to eq(fbclid)
+        expect(visit.attribution).to_not be_nil
+
+        expect(visit.attribution.campaign).to eq(utm_campaign)
+        expect(visit.attribution.content).to eq(utm_content)
+        expect(visit.attribution.medium).to eq(utm_medium)
+        expect(visit.attribution.source).to eq('instagram')
+        expect(visit.attribution.campaign_identifier).to eq(utm_campaign_id)
+        expect(visit.attribution.medium_identifier).to eq(utm_medium_id)
+        expect(visit.attribution.content_identifier).to eq(utm_content_id)
+
+        expect(Land::Pageview.count).to eq(2)
+        pageview = Land::Pageview.find_by(visit_id:)
+
+        expect(pageview.visit_id).to eq(visit_id)
+        expect(pageview.path).to eq('/api/v1/visit')
+        expect(pageview.query_string).to eq('untracked_query_param=its-untracked')
+        expect(pageview.mime_type).to eq('application/json')
+        expect(pageview.http_method).to eq('POST')
+        expect(pageview.click_id).to eq(fbclid)
+        expect(pageview.http_status).to eq(200)
+        expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
+      end
+    end 
   end
 
   context 'unit tests' do
