@@ -99,4 +99,32 @@ describe Land::Config do
       end
     end
   end
+
+  describe '#logger' do
+    it 'defaults to Rails.logger' do
+      expect(subject.logger).to eq Rails.logger
+    end
+
+    it 'returns the same logger if Rails is defined' do
+      expect(subject.logger).to eq(subject.logger)
+    end
+
+    it 'remembers the value' do
+      custom_logger = Logger.new($stdout)
+      subject.instance_variable_set(:@logger, custom_logger)
+      expect(subject.logger).to eq custom_logger
+    end
+
+    it 'falls back to a standard logger if Rails is not defined' do
+      hide_const('Rails')
+      subject.instance_variable_set(:@logger, nil)
+      expect(subject.logger).to be_a(Logger)
+    end
+
+    it 'memoizes the logger' do
+      hide_const('Rails')
+      subject.instance_variable_set(:@logger, nil)
+      expect(subject.logger).to eq(subject.logger)
+    end
+  end
 end
