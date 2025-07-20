@@ -17,13 +17,6 @@ CREATE SCHEMA land;
 
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
---
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -275,7 +268,10 @@ ALTER SEQUENCE land.brands_brand_id_seq OWNED BY land.brands.brand_id;
 
 CREATE TABLE land.browsers (
     browser_id smallint NOT NULL,
-    browser text NOT NULL
+    browser text NOT NULL,
+    dark_mode boolean,
+    light_mode boolean,
+    no_preference boolean
 );
 
 
@@ -451,6 +447,21 @@ CREATE SEQUENCE land.creatives_creative_id_seq
 --
 
 ALTER SEQUENCE land.creatives_creative_id_seq OWNED BY land.creatives.creative_id;
+
+
+--
+-- Name: device_resolutions; Type: TABLE; Schema: land; Owner: -
+--
+
+CREATE TABLE land.device_resolutions (
+    device_resolution_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    device_resolution character varying,
+    width integer,
+    height integer,
+    orientation character varying,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
 
 
 --
@@ -1084,16 +1095,16 @@ ALTER SEQUENCE land.referers_referer_id_seq OWNED BY land.referers.referer_id;
 --
 
 CREATE VIEW land.response_times_by_path AS
- SELECT agg.path_id,
-    agg.path,
-    agg."avg response time (ms)"
+ SELECT path_id,
+    path,
+    "avg response time (ms)"
    FROM ( SELECT p.path_id,
             p.path,
             round(avg(pv.response_time), 3) AS "avg response time (ms)"
            FROM (land.pageviews pv
              JOIN land.paths p USING (path_id))
           GROUP BY p.path_id, p.path) agg
-  ORDER BY agg."avg response time (ms)" DESC;
+  ORDER BY "avg response time (ms)" DESC;
 
 
 --
@@ -1254,7 +1265,8 @@ CREATE TABLE land.user_agents (
     browser_id smallint,
     browser_version text,
     user_agent text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    device_resolution_id uuid
 );
 
 
@@ -1711,6 +1723,14 @@ ALTER TABLE ONLY land.cookies
 
 ALTER TABLE ONLY land.creatives
     ADD CONSTRAINT creatives_pkey PRIMARY KEY (creative_id);
+
+
+--
+-- Name: device_resolutions device_resolutions_pkey; Type: CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.device_resolutions
+    ADD CONSTRAINT device_resolutions_pkey PRIMARY KEY (device_resolution_id);
 
 
 --
@@ -2288,6 +2308,48 @@ CREATE UNIQUE INDEX http_methods__u_http_method ON land.http_methods USING btree
 
 
 --
+-- Name: index_browsers_on_color_scheme_preferences; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_browsers_on_color_scheme_preferences ON land.browsers USING btree (dark_mode, light_mode, no_preference);
+
+
+--
+-- Name: index_device_resolutions_on_device_resolution; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_device_resolution ON land.device_resolutions USING btree (device_resolution);
+
+
+--
+-- Name: index_device_resolutions_on_dims_and_orientation; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_dims_and_orientation ON land.device_resolutions USING btree (width, height, orientation);
+
+
+--
+-- Name: index_device_resolutions_on_height; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_height ON land.device_resolutions USING btree (height);
+
+
+--
+-- Name: index_device_resolutions_on_orientation; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_orientation ON land.device_resolutions USING btree (orientation);
+
+
+--
+-- Name: index_device_resolutions_on_width; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_width ON land.device_resolutions USING btree (width);
+
+
+--
 -- Name: index_land.events_on_created_at; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -2306,6 +2368,13 @@ CREATE INDEX "index_land.events_on_request_id" ON land.events USING btree (reque
 --
 
 CREATE INDEX "index_land.pageviews_on_created_at" ON land.pageviews USING btree (created_at);
+
+
+--
+-- Name: index_user_agents_on_device_resolution_id; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_user_agents_on_device_resolution_id ON land.user_agents USING btree (device_resolution_id);
 
 
 --
@@ -2898,6 +2967,7 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20250720195113'),
 ('20241218175001'),
 ('20241209201633'),
 ('20231211214820'),
