@@ -184,12 +184,6 @@ module Land
         request && request.params.dig('device_resolution', 'height')
       end
 
-      def device_resolution
-        return nil unless request && request.params['device_resolution']
-
-        "#{device_width}x#{device_height}"
-      end
-
       def device_orientation
         request && request.params.dig('device_resolution', 'orientation')
       end
@@ -238,14 +232,13 @@ module Land
 
         browser = ::Browser.new(user_agent)
 
-        update_device_resolution
         update_browser_color_preferences(Browser[browser.name])
 
         @user_agent.browser = Browser[browser.name]
         @user_agent.device = Device[browser.device.name]
         @user_agent.platform = Platform[browser.platform.name]
         @user_agent.browser_version = browser.version
-        @user_agent.device_resolution = DeviceResolution[device_resolution]
+        @user_agent.device_resolution = device_resolution
 
         begin
           @user_agent.save! if @user_agent.changed?
@@ -256,19 +249,21 @@ module Land
         @user_agent
       end
 
-      def update_device_resolution
-        return unless device_resolution.present? && (device_width || device_height || device_orientation)
+      def device_resolution
+        return unless device_width && device_height
 
-        resolution = DeviceResolution[device_resolution]
-        resolution.width = device_width
-        resolution.height = device_height
-        resolution.orientation = device_orientation
+        resolution = DeviceResolution.find_or_initialize_by(
+          width: device_width,
+          height: device_height,
+          orientation: device_orientation
+        )
 
-        begin
-          resolution.save! if resolution.changed?
-        rescue StandardError => e
-          add_error_tag_to_land_span(e)
-        end
+        resolution.device_resolution = "#{device_width}x#{device_height}"
+
+        resolution.save! if resolution.changed?
+        resolution
+      rescue StandardError => e
+        add_error_tag_to_land_span(e)
       end
 
       def update_browser_color_preferences(browser)
