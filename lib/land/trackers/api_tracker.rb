@@ -16,10 +16,7 @@ module Land
         # Here we are going to tag the span with the error if Datadog span
         # exists This is called safely to avoid errors in the case that Datadog
         # is not present
-        if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
-          Datadog::Tracing.active_span&.set_error(e)
-        end
-
+        add_error_tag_to_land_span(e)
         Land.config.logger.error "Error recording visit: #{e.message}"
       end
 
@@ -183,6 +180,30 @@ module Land
         request && request.params['page_view_path']
       end
 
+      def device_width
+        request && request.params.dig('device_resolution', 'width')
+      end
+
+      def device_height
+        request && request.params.dig('device_resolution', 'height')
+      end
+
+      def device_orientation
+        request && request.params.dig('device_resolution', 'orientation')
+      end
+
+      def dark_mode
+        request && request.params.dig('color_scheme_preference', 'is_dark_mode')
+      end
+
+      def light_mode
+        request && request.params.dig('color_scheme_preference', 'is_light_mode')
+      end
+
+      def no_preference
+        request && request.params.dig('color_scheme_preference', 'is_no_preference')
+      end
+
       def raw_user_agent
         @raw_user_agent ||= request.params['user_agent'] || Land.config.blank_user_agent_string
       end
@@ -206,23 +227,68 @@ module Land
                      Land.config.blank_user_agent_string
 
         @user_agent = UserAgent[user_agent]
+        @user_agent.user_agent_type = UserAgentType['user']
 
         if Land.config.identify_crawlers && defined?(CrawlerDetect)
           crawler_detect = CrawlerDetect.new(user_agent)
-          user_agent_type = crawler_detect.is_crawler? ? 'crawl' : 'api'
-          @user_agent.update(user_agent_type: UserAgentType[user_agent_type])
+          @user_agent.user_agent_type = UserAgentType['crawl'] if crawler_detect.is_crawler?
         end
 
         browser = ::Browser.new(user_agent)
 
-        @user_agent.update(
-          browser: Browser[browser.name],
-          device: Device[browser.device.name],
-          platform: Platform[browser.platform.name],
-          browser_version: browser.version
-        )
+        update_browser_color_preferences(Browser[browser.name])
+
+        @user_agent.browser = Browser[browser.name]
+        @user_agent.device = Device[browser.device.name]
+        @user_agent.platform = Platform[browser.platform.name]
+        @user_agent.browser_version = browser.version
+        @user_agent.device_resolution = device_resolution
+
+        begin
+          @user_agent.save! if @user_agent.changed?
+        rescue Standard::Error => e
+          add_error_tag_to_land_span(e)
+        end
 
         @user_agent
+      end
+
+      def device_resolution
+        return unless device_width && device_height
+
+        resolution = DeviceResolution.find_or_initialize_by(
+          width: device_width,
+          height: device_height,
+          orientation: device_orientation
+        )
+
+        resolution.device_resolution = "#{device_width}x#{device_height}"
+
+        resolution.save! if resolution.changed?
+        resolution
+      rescue StandardError => e
+        add_error_tag_to_land_span(e)
+      end
+
+      def update_browser_color_preferences(browser)
+        return unless browser
+
+        browser.dark_mode = dark_mode
+        browser.light_mode = light_mode
+        browser.no_preference = no_preference
+
+        begin
+          browser.save! if browser.changed?
+        rescue StandardError => e
+          add_error_tag_to_land_span(e)
+        end
+      end
+
+      def add_error_tag_to_land_span(error)
+        if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+          Datadog::Tracing.active_span&.set_error(error)
+        end
+        Land.config.logger.error "Land::Trackers::ApiTracker Error: #{error}"
       end
     end
   end
