@@ -235,10 +235,10 @@ module Land
         end
 
         browser = ::Browser.new(user_agent)
+        land_browser = Land::Browser[browser.name]
+        update_browser_color_preferences(land_browser)
 
-        update_browser_color_preferences(Browser[browser.name])
-
-        @user_agent.browser = Browser[browser.name]
+        @user_agent.browser = land_browser
         @user_agent.device = Device[browser.device.name]
         @user_agent.platform = Platform[browser.platform.name]
         @user_agent.browser_version = browser.version
@@ -264,10 +264,14 @@ module Land
 
         resolution.device_resolution = "#{device_width}x#{device_height}"
 
-        resolution.save! if resolution.changed?
+        resolution&.save! if resolution&.changed?
         resolution
-      rescue StandardError => e
+      rescue ActiveRecord::RecordNotUnique
+        retry
+      rescue ActiveRecord::RecordInvalid => e
+        retry if e.message == 'Validation failed: DeviceResolution has already been taken'
         add_error_tag_to_land_span(e)
+        raise e
       end
 
       def update_browser_color_preferences(browser)
