@@ -173,36 +173,21 @@ module Land
       def new_visit? = @visit.nil?
 
       def page_view_query_string
-        request && request.params['page_view_query_string']
+        params['page_view_query_string']
       end
 
       def page_view_path
-        request && request.params['page_view_path']
+        params['page_view_path']
       end
 
-      def device_width
-        request && request.params.dig('device_resolution', 'width')
-      end
+      def device_width       = params.dig('device_resolution', 'width')
+      def device_height      = params.dig('device_resolution', 'height')
+      def device_orientation = params.dig('device_resolution', 'orientation')
+      def dark_mode          = params.dig('color_scheme_preference', 'is_dark_mode')
+      def light_mode         = params.dig('color_scheme_preference', 'is_light_mode')
+      def no_preference      = params.dig('color_scheme_preference', 'is_no_preference')
 
-      def device_height
-        request && request.params.dig('device_resolution', 'height')
-      end
-
-      def device_orientation
-        request && request.params.dig('device_resolution', 'orientation')
-      end
-
-      def dark_mode
-        request && request.params.dig('color_scheme_preference', 'is_dark_mode')
-      end
-
-      def light_mode
-        request && request.params.dig('color_scheme_preference', 'is_light_mode')
-      end
-
-      def no_preference
-        request && request.params.dig('color_scheme_preference', 'is_no_preference')
-      end
+      def params = request && request.params
 
       def raw_user_agent
         @raw_user_agent ||= request.params['user_agent'] || Land.config.blank_user_agent_string
@@ -236,7 +221,10 @@ module Land
 
         browser = ::Browser.new(user_agent)
         land_browser = Land::Browser[browser.name]
-        update_browser_color_preferences(land_browser)
+
+        land_browser.dark_mode = dark_mode if dark_mode
+        land_browser.light_mode = light_mode if light_mode
+        land_browser.no_preference = no_preference if no_preference
 
         @user_agent.browser = land_browser
         @user_agent.device = Device[browser.device.name]
@@ -246,6 +234,7 @@ module Land
 
         begin
           @user_agent.save! if @user_agent.changed?
+          land_browser.save! if land_browser.changed?
         rescue Standard::Error => e
           add_error_tag_to_land_span(e)
         end
@@ -268,24 +257,6 @@ module Land
         resolution
       rescue ActiveRecord::RecordNotUnique
         retry
-      rescue ActiveRecord::RecordInvalid => e
-        retry if e.message == 'Validation failed: DeviceResolution has already been taken'
-        add_error_tag_to_land_span(e)
-        raise e
-      end
-
-      def update_browser_color_preferences(browser)
-        return unless browser
-
-        browser.dark_mode = dark_mode
-        browser.light_mode = light_mode
-        browser.no_preference = no_preference
-
-        begin
-          browser.save! if browser.changed?
-        rescue StandardError => e
-          add_error_tag_to_land_span(e)
-        end
       end
 
       def add_error_tag_to_land_span(error)
