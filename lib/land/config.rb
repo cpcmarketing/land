@@ -3,7 +3,7 @@
 module Land
   class Config < HashWithIndifferentAccess
     ALLOWED_NEW_VISIT_REASONS = %w[referer_changed? attribution_changed? user_agent_changed? visit_stale?]
-    attr_reader :enabled, :secure_cookie
+    attr_reader :enabled, :secure_cookie, :identify_crawlers
 
     attr_writer :blank_user_agent_string
     attr_writer :schema, :untracked_ips, :untracked_paths
@@ -21,6 +21,12 @@ module Land
       raise ArgumentError unless [true, false].include?(value)
 
       @enabled = value
+    end
+
+    def identify_crawlers=(value)
+      raise ArgumentError unless [true, false].include?(value)
+
+      @identify_crawlers = value
     end
 
     def secure_cookie=(value)

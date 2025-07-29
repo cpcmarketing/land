@@ -13,6 +13,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     Rails.application.routes.draw do
       get '/api/v1/test', to: 'api_tracker_test#call'
       post '/api/v1/visit', to: 'api_tracker_test#call'
+      post '/api/v1/tracking/page-view', to: 'api_tracker_test#call'
     end
   end
 
@@ -86,6 +87,11 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.visit_id).to eq(visit_id)
       expect(visit.referer.domain).to eq('veterandebtassistance.org')
       expect(visit.user_agent.user_agent).to eq(user_agent)
+      expect(visit.user_agent.device).to eq('Unknown')
+      expect(visit.user_agent.platform).to eq('Windows')
+      expect(visit.user_agent.browser).to eq('Chrome')
+      expect(visit.user_agent.browser_version).to eq('98')
+
       expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
       expect(visit.raw_query_string).to eq(query_string)
       expect(visit.click_id).to eq(fbclid)
@@ -142,6 +148,11 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.visit_id).to eq(visit_id)
       expect(visit.referer).to eq(nil)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
+      expect(visit.user_agent.device).to eq('Unknown')
+      expect(visit.user_agent.platform).to eq('Unknown')
+      expect(visit.user_agent.browser).to eq('Unknown Browser')
+      expect(visit.user_agent.browser_version).to eq('0')
+
       expect(visit.unaltered_ingress_url).to eq(nil)
       expect(visit.raw_query_string).to eq(nil)
       expect(visit.click_id).to eq(nil)
@@ -183,6 +194,11 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.visit_id).to eq(visit_id)
       expect(visit.referer.domain).to eq('veterandebtassistance.org')
       expect(visit.user_agent.user_agent).to eq(user_agent)
+      expect(visit.user_agent.device).to eq('Unknown')
+      expect(visit.user_agent.platform).to eq('Windows')
+      expect(visit.user_agent.browser).to eq('Chrome')
+      expect(visit.user_agent.browser_version).to eq('98')
+
       expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
       expect(visit.raw_query_string).to eq(query_string)
       expect(visit.click_id).to eq(fbclid)
@@ -244,6 +260,234 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
                                             as: :json
 
       expect(active_span).to have_received(:set_error).with(kind_of(RuntimeError))
+    end
+  end
+
+  context 'when the request is successful and /api/v1/visit is the second request, simulating a race condition' do
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    it 'record visit rescues and retries on ActiveRecord::RecordNotUnique error' do
+      expect(Land::Visit.count).to eq(0)
+
+      save_calls = 0
+      allow_any_instance_of(Land::Visit).to receive(:save!) do |visit|
+        save_calls += 1
+        raise ActiveRecord::RecordNotUnique if save_calls == 1
+
+        # Mimic the original implementation
+        expect(visit.persisted?).to eq(false)
+        expect(visit.valid?).to eq(true)
+        expect(visit.changed?).to eq(true)
+        visit.save
+        expect(visit.persisted?).to eq(true)
+      end
+
+      # visit call
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+
+      expect(save_calls).to eq(2)
+      expect(Land::Visit.count).to eq(1)
+      expect(Land::Visit.first.visit_id).to eq(visit_id)
+    end
+
+    it 'record visit rescues and retries on ActiveRecord::RecordInvalid error' do
+      expect(Land::Visit.count).to eq(0)
+
+      save_calls = 0
+      allow_any_instance_of(Land::Visit).to receive(:save!) do |visit|
+        save_calls += 1
+
+        if save_calls == 1
+          visit.errors.add(:base, 'Visit has already been taken')
+          raise ActiveRecord::RecordInvalid.new(visit)
+        end
+
+        # Mimic the original implementation
+        expect(visit.persisted?).to eq(false)
+        expect(visit.valid?).to eq(true)
+        expect(visit.changed?).to eq(true)
+        visit.save
+        expect(visit.persisted?).to eq(true)
+      end
+
+      # visit call
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+
+      expect(save_calls).to eq(2)
+      expect(Land::Visit.count).to eq(1)
+      expect(Land::Visit.first.visit_id).to eq(visit_id)
+    end
+
+    it 'load does not throw error on ActiveRecord::RecordNotUnique error' do
+      expect(Land::Cookie.count).to eq(0)
+
+      find_or_create_calls = 0
+      allow(Land::Cookie).to receive(:find_or_create_by) do |attributes, &block|
+        find_or_create_calls += 1
+        raise ActiveRecord::RecordNotUnique if find_or_create_calls == 1
+
+        expect(Land::Cookie.count).to eq(0)
+
+        # this mirrors the implementation of Land::Cookie.find_or_create_by
+        # source code: https://github.com/rails/rails/blob/b0405f820a4acf3fae85044c71a819967fd59967/activerecord/lib/active_record/relation.rb#L231
+        Land::Cookie.find_by(attributes) || Land::Cookie.create_or_find_by(attributes, &block)
+      end
+
+      # visit call
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+
+      expect(find_or_create_calls).to eq(2)
+
+      expect(Land::Cookie.count).to eq(1)
+      expect(Land::Cookie.first.cookie_id).to eq(cookie_id)
+    end
+
+    it 'load does not throw error on ActiveRecord::RecordInvalid error' do
+      expect(Land::Cookie.count).to eq(0)
+
+      find_or_create_calls = 0
+      allow(Land::Cookie).to receive(:find_or_create_by) do |attributes, &block|
+        find_or_create_calls += 1
+
+        if find_or_create_calls == 1
+          cookie = Land::Cookie.new(cookie_id: cookie_id)
+          cookie.errors.add(:base, 'Cookie has already been taken')
+          raise ActiveRecord::RecordInvalid.new(cookie)
+        end
+
+        expect(Land::Cookie.count).to eq(0)
+
+        # this mirrors the implementation of Land::Cookie.find_or_create_by
+        # source code: https://github.com/rails/rails/blob/b0405f820a4acf3fae85044c71a819967fd59967/activerecord/lib/active_record/relation.rb#L231
+        Land::Cookie.find_by(attributes) || Land::Cookie.create_or_find_by(attributes, &block)
+      end
+
+      # visit call
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+
+      expect(find_or_create_calls).to eq(2)
+      expect(Land::Cookie.count).to eq(1)
+      expect(Land::Cookie.first.cookie_id).to eq(cookie_id)
+    end
+  end
+
+  context 'pageview arrives first' do
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    it 'the attribution is parsed' do
+      post '/api/v1/tracking/page-view', params: {
+                                           cookie_id:,
+                                           visit_id:,
+                                           page_view_path: 'http://thedebtfreenurse.com/the-debt-free-nurse',
+                                           page_view_query_string: query_string,
+                                           page_view_mime_type: 'text/html',
+                                           page_view_http_method: 'GET',
+                                           page_view_http_status: '200'
+                                         },
+                                         as: :json
+
+      expect(Land::Visit.where(cookie_id:).count).to eq(1)
+
+      visit = Land::Visit.find_by(visit_id:)
+
+      expect(visit.click_id).to eq(nil)
+      expect(visit.raw_query_string).to eq(nil)
+      expect(visit.referer).to eq(nil)
+      expect(visit.unaltered_ingress_url).to eq(nil)
+
+      expect(visit.cookie_id).to eq(cookie_id)
+      expect(visit.visit_id).to eq(visit_id)
+      expect(visit.user_agent.user_agent).to eq('user agent missing')
+      expect(visit.user_agent.device).to eq('Unknown')
+      expect(visit.user_agent.platform).to eq('Unknown')
+      expect(visit.user_agent.browser).to eq('Unknown Browser')
+      expect(visit.user_agent.browser_version).to eq('0')
+
+      expect(visit.attribution).to_not be_nil
+      expect(visit.attribution.campaign).to eq(utm_campaign)
+      expect(visit.attribution.content).to eq(utm_content)
+      expect(visit.attribution.medium).to eq(utm_medium)
+      expect(visit.attribution.source).to eq('instagram')
+      expect(visit.attribution.campaign_identifier).to eq(utm_campaign_id)
+      expect(visit.attribution.medium_identifier).to eq(utm_medium_id)
+      expect(visit.attribution.content_identifier).to eq(utm_content_id)
+    end
+
+    context 'and a visit arrives after' do
+      before(:each) do
+        post '/api/v1/tracking/page-view', params: {
+                                             cookie_id:,
+                                             visit_id:,
+                                             page_view_path: 'http://thedebtfreenurse.com/the-debt-free-nurse',
+                                             page_view_query_string: query_string,
+                                             page_view_mime_type: 'text/html',
+                                             page_view_http_method: 'GET',
+                                             page_view_http_status: '200'
+                                           },
+                                           as: :json
+      end
+
+      it 'updates attribution as expected' do
+        post "/api/v1/visit?#{query_string}", params: body,
+                                              as: :json
+
+        expect(Land::Visit.where(cookie_id:).count).to eq(1)
+
+        visit = Land::Visit.find_by(visit_id:)
+
+        expect(visit.cookie_id).to eq(cookie_id)
+        expect(visit.visit_id).to eq(visit_id)
+        expect(visit.referer.domain).to eq('veterandebtassistance.org')
+        expect(visit.user_agent.user_agent).to eq(user_agent)
+        expect(visit.user_agent.device).to eq('Unknown')
+        expect(visit.user_agent.platform).to eq('Windows')
+        expect(visit.user_agent.browser).to eq('Chrome')
+        expect(visit.user_agent.browser_version).to eq('98')
+
+        expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
+        expect(visit.raw_query_string).to eq(query_string)
+        expect(visit.click_id).to eq(fbclid)
+        expect(visit.attribution).to_not be_nil
+
+        expect(visit.attribution.campaign).to eq(utm_campaign)
+        expect(visit.attribution.content).to eq(utm_content)
+        expect(visit.attribution.medium).to eq(utm_medium)
+        expect(visit.attribution.source).to eq('instagram')
+        expect(visit.attribution.campaign_identifier).to eq(utm_campaign_id)
+        expect(visit.attribution.medium_identifier).to eq(utm_medium_id)
+        expect(visit.attribution.content_identifier).to eq(utm_content_id)
+      end
+    end
+  end
+
+  context 'unit tests' do
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    describe 'VISIT_ENDPOINT_REGEX' do
+      it 'matches the correct endpoint' do
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to be_a(Regexp)
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to match('/api/v1/visit')
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to match('/api/v1121/visit')
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to_not match('/api/v1/visitX')
+        expect(Land::Trackers::ApiTracker::VISIT_ENDPOINT_REGEX).to_not match('/apii/v1/visit')
+      end
+    end
+
+    describe 'PAGEVIEW_ENDPOINT_REGEX' do
+      it 'matches the correct endpoint' do
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to be_a(Regexp)
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to match('/api/v1/tracking/page-view')
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to match('/api/v1121/tracking/page-view')
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to_not match('/api/v1/tracking/page-viewX')
+        expect(Land::Trackers::ApiTracker::PAGEVIEW_ENDPOINT_REGEX).to_not match('/apii/v1/tracking/page-view')
+      end
     end
   end
 end
