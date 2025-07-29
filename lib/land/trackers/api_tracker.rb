@@ -180,13 +180,6 @@ module Land
         params['page_view_path']
       end
 
-      def device_width       = params.dig('device_resolution', 'width')
-      def device_height      = params.dig('device_resolution', 'height')
-      def device_orientation = params.dig('device_resolution', 'orientation')
-      def dark_mode          = params.dig('color_scheme_preference', 'is_dark_mode')
-      def light_mode         = params.dig('color_scheme_preference', 'is_light_mode')
-      def no_preference      = params.dig('color_scheme_preference', 'is_no_preference')
-
       def params = request && request.params
 
       def raw_user_agent
@@ -222,9 +215,9 @@ module Land
         browser = ::Browser.new(user_agent)
         land_browser = Land::Browser[browser.name]
 
-        land_browser.dark_mode = dark_mode if dark_mode
-        land_browser.light_mode = light_mode if light_mode
-        land_browser.no_preference = no_preference if no_preference
+        land_browser.dark_mode = params.dig('color_scheme_preference', 'is_dark_mode')
+        land_browser.light_mode = params.dig('color_scheme_preference', 'is_light_mode')
+        land_browser.no_preference = params.dig('color_scheme_preference', 'is_no_preference')
 
         @user_agent.browser = land_browser
         @user_agent.device = Device[browser.device.name]
@@ -243,7 +236,11 @@ module Land
       end
 
       def device_resolution
-        return unless device_width && device_height
+        device_width = params.dig('device_resolution', 'width')
+        device_height = params.dig('device_resolution', 'height')
+        device_orientation = params.dig('device_resolution', 'orientation')
+
+        return unless device_width && device_height && device_orientation
 
         resolution = DeviceResolution.find_or_initialize_by(
           width: device_width,
