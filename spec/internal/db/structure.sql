@@ -267,9 +267,8 @@ ALTER SEQUENCE land.brands_brand_id_seq OWNED BY land.brands.brand_id;
 --
 
 CREATE TABLE land.browsers (
-    browser_id_old smallint NOT NULL,
-    browser text NOT NULL,
-    browser_id uuid DEFAULT gen_random_uuid() NOT NULL
+    browser_id smallint NOT NULL,
+    browser text NOT NULL
 );
 
 
@@ -290,7 +289,7 @@ CREATE SEQUENCE land.browsers_browser_id_seq
 -- Name: browsers_browser_id_seq; Type: SEQUENCE OWNED BY; Schema: land; Owner: -
 --
 
-ALTER SEQUENCE land.browsers_browser_id_seq OWNED BY land.browsers.browser_id_old;
+ALTER SEQUENCE land.browsers_browser_id_seq OWNED BY land.browsers.browser_id;
 
 
 --
@@ -481,9 +480,8 @@ ALTER SEQUENCE land.device_types_device_type_id_seq OWNED BY land.device_types.d
 --
 
 CREATE TABLE land.devices (
-    device_id_old bigint NOT NULL,
-    device text NOT NULL,
-    device_id uuid DEFAULT gen_random_uuid() NOT NULL
+    device_id bigint NOT NULL,
+    device text NOT NULL
 );
 
 
@@ -503,7 +501,7 @@ CREATE SEQUENCE land.devices_device_id_seq
 -- Name: devices_device_id_seq; Type: SEQUENCE OWNED BY; Schema: land; Owner: -
 --
 
-ALTER SEQUENCE land.devices_device_id_seq OWNED BY land.devices.device_id_old;
+ALTER SEQUENCE land.devices_device_id_seq OWNED BY land.devices.device_id;
 
 
 --
@@ -511,9 +509,8 @@ ALTER SEQUENCE land.devices_device_id_seq OWNED BY land.devices.device_id_old;
 --
 
 CREATE TABLE land.domains (
-    domain_id_old bigint,
-    domain text NOT NULL,
-    domain_id uuid DEFAULT gen_random_uuid() NOT NULL
+    domain_id bigint NOT NULL,
+    domain text NOT NULL
 );
 
 
@@ -533,7 +530,7 @@ CREATE SEQUENCE land.domains_domain_id_seq
 -- Name: domains_domain_id_seq; Type: SEQUENCE OWNED BY; Schema: land; Owner: -
 --
 
-ALTER SEQUENCE land.domains_domain_id_seq OWNED BY land.domains.domain_id_old;
+ALTER SEQUENCE land.domains_domain_id_seq OWNED BY land.domains.domain_id;
 
 
 --
@@ -959,9 +956,8 @@ ALTER SEQUENCE land.placements_placement_id_seq OWNED BY land.placements.placeme
 --
 
 CREATE TABLE land.platforms (
-    platform_id_old smallint NOT NULL,
-    platform text NOT NULL,
-    platform_id uuid DEFAULT gen_random_uuid() NOT NULL
+    platform_id smallint NOT NULL,
+    platform text NOT NULL
 );
 
 
@@ -982,7 +978,7 @@ CREATE SEQUENCE land.platforms_platform_id_seq
 -- Name: platforms_platform_id_seq; Type: SEQUENCE OWNED BY; Schema: land; Owner: -
 --
 
-ALTER SEQUENCE land.platforms_platform_id_seq OWNED BY land.platforms.platform_id_old;
+ALTER SEQUENCE land.platforms_platform_id_seq OWNED BY land.platforms.platform_id;
 
 
 --
@@ -1049,11 +1045,10 @@ ALTER SEQUENCE land.query_strings_query_string_id_seq OWNED BY land.query_string
 
 CREATE TABLE land.referers (
     referer_id integer NOT NULL,
-    domain_id_old bigint,
+    domain_id integer NOT NULL,
     path_id integer NOT NULL,
     query_string_id integer NOT NULL,
-    attribution_id integer NOT NULL,
-    domain_id uuid DEFAULT gen_random_uuid() NOT NULL
+    attribution_id integer NOT NULL
 );
 
 
@@ -1215,9 +1210,8 @@ ALTER SEQUENCE land.targets_target_id_seq OWNED BY land.targets.target_id;
 --
 
 CREATE TABLE land.user_agent_types (
-    user_agent_type_id_old smallint NOT NULL,
-    user_agent_type text NOT NULL,
-    user_agent_type_id uuid DEFAULT gen_random_uuid() NOT NULL
+    user_agent_type_id smallint NOT NULL,
+    user_agent_type text NOT NULL
 );
 
 
@@ -1238,7 +1232,7 @@ CREATE SEQUENCE land.user_agent_types_user_agent_type_id_seq
 -- Name: user_agent_types_user_agent_type_id_seq; Type: SEQUENCE OWNED BY; Schema: land; Owner: -
 --
 
-ALTER SEQUENCE land.user_agent_types_user_agent_type_id_seq OWNED BY land.user_agent_types.user_agent_type_id_old;
+ALTER SEQUENCE land.user_agent_types_user_agent_type_id_seq OWNED BY land.user_agent_types.user_agent_type_id;
 
 
 --
@@ -1246,19 +1240,14 @@ ALTER SEQUENCE land.user_agent_types_user_agent_type_id_seq OWNED BY land.user_a
 --
 
 CREATE TABLE land.user_agents (
-    user_agent_id_old integer NOT NULL,
-    user_agent_type_id_old smallint,
-    device_id_old integer,
-    platform_id_old smallint,
-    browser_id_old smallint,
+    user_agent_id integer NOT NULL,
+    user_agent_type_id smallint,
+    device_id integer,
+    platform_id smallint,
+    browser_id smallint,
     browser_version text,
     user_agent text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    user_agent_id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_agent_type_id uuid,
-    device_id uuid,
-    platform_id uuid,
-    browser_id uuid
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1279,7 +1268,7 @@ CREATE SEQUENCE land.user_agents_user_agent_id_seq
 -- Name: user_agents_user_agent_id_seq; Type: SEQUENCE OWNED BY; Schema: land; Owner: -
 --
 
-ALTER SEQUENCE land.user_agents_user_agent_id_seq OWNED BY land.user_agents.user_agent_id_old;
+ALTER SEQUENCE land.user_agents_user_agent_id_seq OWNED BY land.user_agents.user_agent_id;
 
 
 --
@@ -1289,7 +1278,7 @@ ALTER SEQUENCE land.user_agents_user_agent_id_seq OWNED BY land.user_agents.user
 CREATE TABLE land.visits (
     visit_id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     cookie_id uuid NOT NULL,
-    user_agent_id_old integer NOT NULL,
+    user_agent_id integer NOT NULL,
     attribution_id integer NOT NULL,
     referer_id integer,
     owner_id integer,
@@ -1297,11 +1286,9 @@ CREATE TABLE land.visits (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     raw_query_string text,
-    domain_id_old integer,
+    domain_id integer,
     unaltered_ingress_url text,
-    click_id text,
-    domain_id uuid,
-    user_agent_id uuid
+    click_id text
 );
 
 
@@ -1376,10 +1363,10 @@ ALTER TABLE ONLY land.brands ALTER COLUMN brand_id SET DEFAULT nextval('land.bra
 
 
 --
--- Name: browsers browser_id_old; Type: DEFAULT; Schema: land; Owner: -
+-- Name: browsers browser_id; Type: DEFAULT; Schema: land; Owner: -
 --
 
-ALTER TABLE ONLY land.browsers ALTER COLUMN browser_id_old SET DEFAULT nextval('land.browsers_browser_id_seq'::regclass);
+ALTER TABLE ONLY land.browsers ALTER COLUMN browser_id SET DEFAULT nextval('land.browsers_browser_id_seq'::regclass);
 
 
 --
@@ -1425,17 +1412,17 @@ ALTER TABLE ONLY land.device_types ALTER COLUMN device_type_id SET DEFAULT nextv
 
 
 --
--- Name: devices device_id_old; Type: DEFAULT; Schema: land; Owner: -
+-- Name: devices device_id; Type: DEFAULT; Schema: land; Owner: -
 --
 
-ALTER TABLE ONLY land.devices ALTER COLUMN device_id_old SET DEFAULT nextval('land.devices_device_id_seq'::regclass);
+ALTER TABLE ONLY land.devices ALTER COLUMN device_id SET DEFAULT nextval('land.devices_device_id_seq'::regclass);
 
 
 --
--- Name: domains domain_id_old; Type: DEFAULT; Schema: land; Owner: -
+-- Name: domains domain_id; Type: DEFAULT; Schema: land; Owner: -
 --
 
-ALTER TABLE ONLY land.domains ALTER COLUMN domain_id_old SET DEFAULT nextval('land.domains_domain_id_seq'::regclass);
+ALTER TABLE ONLY land.domains ALTER COLUMN domain_id SET DEFAULT nextval('land.domains_domain_id_seq'::regclass);
 
 
 --
@@ -1530,10 +1517,10 @@ ALTER TABLE ONLY land.placements ALTER COLUMN placement_id SET DEFAULT nextval('
 
 
 --
--- Name: platforms platform_id_old; Type: DEFAULT; Schema: land; Owner: -
+-- Name: platforms platform_id; Type: DEFAULT; Schema: land; Owner: -
 --
 
-ALTER TABLE ONLY land.platforms ALTER COLUMN platform_id_old SET DEFAULT nextval('land.platforms_platform_id_seq'::regclass);
+ALTER TABLE ONLY land.platforms ALTER COLUMN platform_id SET DEFAULT nextval('land.platforms_platform_id_seq'::regclass);
 
 
 --
@@ -1586,17 +1573,17 @@ ALTER TABLE ONLY land.targets ALTER COLUMN target_id SET DEFAULT nextval('land.t
 
 
 --
--- Name: user_agent_types user_agent_type_id_old; Type: DEFAULT; Schema: land; Owner: -
+-- Name: user_agent_types user_agent_type_id; Type: DEFAULT; Schema: land; Owner: -
 --
 
-ALTER TABLE ONLY land.user_agent_types ALTER COLUMN user_agent_type_id_old SET DEFAULT nextval('land.user_agent_types_user_agent_type_id_seq'::regclass);
+ALTER TABLE ONLY land.user_agent_types ALTER COLUMN user_agent_type_id SET DEFAULT nextval('land.user_agent_types_user_agent_type_id_seq'::regclass);
 
 
 --
--- Name: user_agents user_agent_id_old; Type: DEFAULT; Schema: land; Owner: -
+-- Name: user_agents user_agent_id; Type: DEFAULT; Schema: land; Owner: -
 --
 
-ALTER TABLE ONLY land.user_agents ALTER COLUMN user_agent_id_old SET DEFAULT nextval('land.user_agents_user_agent_id_seq'::regclass);
+ALTER TABLE ONLY land.user_agents ALTER COLUMN user_agent_id SET DEFAULT nextval('land.user_agents_user_agent_id_seq'::regclass);
 
 
 --
@@ -1908,7 +1895,7 @@ ALTER TABLE ONLY land.query_strings
 --
 
 ALTER TABLE ONLY land.referers
-    ADD CONSTRAINT referers_domain_id_path_id_query_string_id_attribution_id_key UNIQUE (domain_id_old, path_id, query_string_id, attribution_id);
+    ADD CONSTRAINT referers_domain_id_path_id_query_string_id_attribution_id_key UNIQUE (domain_id, path_id, query_string_id, attribution_id);
 
 
 --
@@ -2315,55 +2302,6 @@ CREATE INDEX "index_land.pageviews_on_created_at" ON land.pageviews USING btree 
 
 
 --
--- Name: index_user_agents_on_browser_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_user_agents_on_browser_id ON land.user_agents USING btree (browser_id);
-
-
---
--- Name: index_user_agents_on_device_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_user_agents_on_device_id ON land.user_agents USING btree (device_id);
-
-
---
--- Name: index_user_agents_on_platform_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_user_agents_on_platform_id ON land.user_agents USING btree (platform_id);
-
-
---
--- Name: index_user_agents_on_user_agent_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_user_agents_on_user_agent_id ON land.user_agents USING btree (user_agent_id);
-
-
---
--- Name: index_user_agents_on_user_agent_id_old; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_user_agents_on_user_agent_id_old ON land.user_agents USING btree (user_agent_id_old);
-
-
---
--- Name: index_user_agents_on_user_agent_type_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_user_agents_on_user_agent_type_id ON land.user_agents USING btree (user_agent_type_id);
-
-
---
--- Name: index_visits_on_user_agent_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_visits_on_user_agent_id ON land.visits USING btree (user_agent_id);
-
-
---
 -- Name: keywords__u_keyword; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -2486,7 +2424,7 @@ CREATE INDEX referers_attribution_id_idx ON land.referers USING btree (attributi
 -- Name: referers_domain_id_idx; Type: INDEX; Schema: land; Owner: -
 --
 
-CREATE INDEX referers_domain_id_idx ON land.referers USING btree (domain_id_old);
+CREATE INDEX referers_domain_id_idx ON land.referers USING btree (domain_id);
 
 
 --
@@ -2542,21 +2480,21 @@ CREATE UNIQUE INDEX user_agent_types__u_user_agent_type ON land.user_agent_types
 -- Name: user_agents_browser_id_idx; Type: INDEX; Schema: land; Owner: -
 --
 
-CREATE INDEX user_agents_browser_id_idx ON land.user_agents USING btree (browser_id_old);
+CREATE INDEX user_agents_browser_id_idx ON land.user_agents USING btree (browser_id);
 
 
 --
 -- Name: user_agents_device_id_idx; Type: INDEX; Schema: land; Owner: -
 --
 
-CREATE INDEX user_agents_device_id_idx ON land.user_agents USING btree (device_id_old);
+CREATE INDEX user_agents_device_id_idx ON land.user_agents USING btree (device_id);
 
 
 --
 -- Name: user_agents_platform_id_idx; Type: INDEX; Schema: land; Owner: -
 --
 
-CREATE INDEX user_agents_platform_id_idx ON land.user_agents USING btree (platform_id_old);
+CREATE INDEX user_agents_platform_id_idx ON land.user_agents USING btree (platform_id);
 
 
 --
@@ -2591,7 +2529,7 @@ CREATE INDEX visits_referer_id_idx ON land.visits USING btree (referer_id);
 -- Name: visits_user_agent_id_idx; Type: INDEX; Schema: land; Owner: -
 --
 
-CREATE INDEX visits_user_agent_id_idx ON land.visits USING btree (user_agent_id_old);
+CREATE INDEX visits_user_agent_id_idx ON land.visits USING btree (user_agent_id);
 
 
 --
@@ -2875,6 +2813,14 @@ ALTER TABLE ONLY land.referers
 
 
 --
+-- Name: user_agents user_agents_browser_id_fkey; Type: FK CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.user_agents
+    ADD CONSTRAINT user_agents_browser_id_fkey FOREIGN KEY (browser_id) REFERENCES land.browsers(browser_id);
+
+
+--
 -- Name: user_agents user_agents_device_id_fkey; Type: FK CONSTRAINT; Schema: land; Owner: -
 --
 
@@ -2915,14 +2861,6 @@ ALTER TABLE ONLY land.visits
 
 
 --
--- Name: visits visits_domain_id_fkey; Type: FK CONSTRAINT; Schema: land; Owner: -
---
-
-ALTER TABLE ONLY land.visits
-    ADD CONSTRAINT visits_domain_id_fkey FOREIGN KEY (domain_id) REFERENCES land.domains(domain_id);
-
-
---
 -- Name: visits visits_owner_id_fkey; Type: FK CONSTRAINT; Schema: land; Owner: -
 --
 
@@ -2953,9 +2891,6 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
-('20250407200702'),
-('20250407183941'),
-('20250324151330'),
 ('20241218175001'),
 ('20241209201633'),
 ('20231211214820'),
