@@ -17,13 +17,6 @@ CREATE SCHEMA land;
 
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
---
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -1084,16 +1077,16 @@ ALTER SEQUENCE land.referers_referer_id_seq OWNED BY land.referers.referer_id;
 --
 
 CREATE VIEW land.response_times_by_path AS
- SELECT agg.path_id,
-    agg.path,
-    agg."avg response time (ms)"
+ SELECT path_id,
+    path,
+    "avg response time (ms)"
    FROM ( SELECT p.path_id,
             p.path,
             round(avg(pv.response_time), 3) AS "avg response time (ms)"
            FROM (land.pageviews pv
              JOIN land.paths p USING (path_id))
           GROUP BY p.path_id, p.path) agg
-  ORDER BY agg."avg response time (ms)" DESC;
+  ORDER BY "avg response time (ms)" DESC;
 
 
 --

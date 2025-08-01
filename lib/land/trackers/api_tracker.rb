@@ -13,9 +13,7 @@ module Land
         load
         record_visit
       rescue StandardError => e
-        # Here we are going to tag the span with the error if Datadog span
-        # exists This is called safely to avoid errors in the case that Datadog
-        # is not present
+        # Here we are going to tag the span with the error if Datadog span exists
         if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
           Datadog::Tracing.active_span&.set_error(e)
         end
@@ -50,10 +48,10 @@ module Land
       # so we have to check the Land::Visit does not exist
       def record_visit
         @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
-          visit.attribution = attribution
+          visit.attribution      = attribution
           visit.cookie_id        = @cookie_id
           visit.referer_id       = referer&.id
-          visit.user_agent_id    = user_agent&.id
+          visit.user_agent_id    = Land::UserAgent[raw_user_agent]&.id
           visit.ip_address       = remote_ip
           visit.domain_id        = request_domain&.id
           visit.raw_query_string = referer_uri&.query
@@ -72,14 +70,13 @@ module Land
           maybe_set_unaltered_ingress_url
           maybe_set_visit_attribution
           maybe_set_visit_referer
-          maybe_set_user_agent
+          maybe_update_user_agent
           maybe_set_click_id
         end
 
         # When bots click links, we do not get cookies loaded, so no visit call is made
         # This will set attribution if there is no visit call made
         maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
-
         @visit&.save! if @visit&.changed?
       rescue ActiveRecord::RecordNotUnique
         retry
@@ -113,10 +110,21 @@ module Land
         @visit.referer_id = referer.id
       end
 
-      def maybe_set_user_agent
-        return unless user_agent && @visit.user_agent.user_agent == Land.config.blank_user_agent_string
+      def maybe_update_user_agent
+        return @visit.user_agent if @visit.user_agent.user_agent_type
 
-        @visit.user_agent_id = user_agent.id
+        if Land.config.identify_crawlers && defined?(CrawlerDetect)
+          crawler_detect = CrawlerDetect.new(raw_user_agent)
+          user_agent_type = crawler_detect.is_crawler? ? 'crawl' : 'api'
+          @visit.user_agent.user_agent_type = Land::UserAgentType[user_agent_type]
+        end
+
+        browser = ::Browser.new(raw_user_agent)
+
+        @visit.user_agent.browser = Browser[browser.name]
+        @visit.user_agent.device = Device[browser.device.name]
+        @visit.user_agent.platform = Platform[browser.platform.name]
+        @visit.user_agent.browser_version = browser.version
       end
 
       def maybe_set_click_id
@@ -162,10 +170,11 @@ module Land
       end
 
       # Attribution Methods ---------------------------------
+      # TODO(Kyle): add a unit spec for this so it fails if more field
       def attribution_values_present?
         @visit.attribution
               .attributes
-              .reject { |k, _v| %w[attribution_id created_at].include?(k) }
+              .select { |k, _v| Land::Tracker::ATTRIBUTION_KEYS.include?(k.sub(/_id$/, '')) }
               .values
               .any?
       end
@@ -199,31 +208,7 @@ module Land
       end
 
       # Overriding Tracker#user_agent as it is set via params and not header in the API
-      def user_agent
-        return @user_agent if @user_agent
-
-        user_agent = request.params['user_agent'] ||
-                     Land.config.blank_user_agent_string
-
-        @user_agent = UserAgent[user_agent]
-
-        if Land.config.identify_crawlers && defined?(CrawlerDetect)
-          crawler_detect = CrawlerDetect.new(user_agent)
-          user_agent_type = crawler_detect.is_crawler? ? 'crawl' : 'api'
-          @user_agent.update(user_agent_type: UserAgentType[user_agent_type])
-        end
-
-        browser = ::Browser.new(user_agent)
-
-        @user_agent.update(
-          browser: Browser[browser.name],
-          device: Device[browser.device.name],
-          platform: Platform[browser.platform.name],
-          browser_version: browser.version
-        )
-
-        @user_agent
-      end
+      def user_agent = visit.user_agent
     end
   end
 end

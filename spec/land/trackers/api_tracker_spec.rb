@@ -74,6 +74,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
 
     before do
       post "/api/v1/visit?#{query_string}", params: body,
+                                            headers: { 'User-Agent': 'test user agent' },
                                             as: :json
     end
 
@@ -115,15 +116,24 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(pageview.click_id).to eq(fbclid)
       expect(pageview.http_status).to eq(200)
       expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
+
+      expect(Land::UserAgent.count).to eq(2)
+      user_agent = visit.user_agent
+
+      expect(user_agent.user_agent_type).to eq('api')
+      expect(user_agent.user_agent).to eq(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+      )
+
+
+
+
     end
   end
 
   context 'when the request is successful and /api/v1/visit is the second request' do
     let(:cookie_id) { SecureRandom.uuid }
     let(:visit_id) { SecureRandom.uuid }
-
-    before do
-    end
 
     it 'creates the expected records' do
       # first call not visit
@@ -168,6 +178,10 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(pageview.http_status).to eq(200)
       expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
 
+      expect(Land::UserAgent.all.count).to eq(1)
+      expect(visit.user_agent.user_agent_type).to eq('api')
+      expect(visit.user_agent.user_agent).to eq('user agent missing')
+
       # visit call
       post "/api/v1/visit?#{query_string}", params: body,
                                             as: :json
@@ -209,6 +223,43 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(pageview.click_id).to eq(fbclid)
       expect(pageview.http_status).to eq(200)
       expect(pageview.tiktok_pixel_cookie_id).to eq(nil)
+
+      expect(Land::UserAgent.all.count).to eq(2)
+      expect(visit.user_agent.user_agent_type).to eq('api')
+      expect(visit.user_agent.user_agent).to eq(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+      )
+
+    end
+  end
+
+  describe 'when encountering an unexpected error' do
+    # create a mock of Datadog::Tracing
+    before do
+      unless defined?(Datadog)
+        module Datadog
+          module Tracing
+            def self.active_span; end
+          end
+        end
+      end
+    end
+
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    it 'logs the error and sets the Datadog span error' do
+      @errors = []
+
+      active_span = double('active_span', set_error: ->(e) { @errors << e })
+      allow(Datadog::Tracing).to receive(:active_span).and_return(active_span)
+
+      allow_any_instance_of(Land::Trackers::ApiTracker).to receive(:load).and_raise('boom')
+
+      post "/api/v1/visit?#{query_string}", params: body,
+                                            as: :json
+
+      expect(active_span).to have_received(:set_error).with(kind_of(RuntimeError))
     end
   end
 
