@@ -228,7 +228,11 @@ module Land
         begin
           @user_agent.save! if @user_agent.changed?
           land_browser.save! if land_browser.changed?
-        rescue Standard::Error => e
+        rescue ActiveRecord::RecordNotUnique
+          retry
+        rescue ActiveRecord::RecordInvalid => e
+          retry if e.message == 'Validation failed: User agent has already been taken'
+
           add_error_tag_to_land_span(e)
         end
 
