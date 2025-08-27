@@ -268,10 +268,7 @@ ALTER SEQUENCE land.brands_brand_id_seq OWNED BY land.brands.brand_id;
 
 CREATE TABLE land.browsers (
     browser_id smallint NOT NULL,
-    browser text NOT NULL,
-    dark_mode boolean,
-    light_mode boolean,
-    no_preference boolean
+    browser text NOT NULL
 );
 
 
@@ -1324,6 +1321,20 @@ CREATE TABLE public.ar_internal_metadata (
 
 
 --
+-- Name: browser_color_preferences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.browser_color_preferences (
+    browser_color_preference_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    dark_mode boolean,
+    light_mode boolean,
+    no_preference boolean,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2006,6 +2017,14 @@ ALTER TABLE ONLY public.ar_internal_metadata
 
 
 --
+-- Name: browser_color_preferences browser_color_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.browser_color_preferences
+    ADD CONSTRAINT browser_color_preferences_pkey PRIMARY KEY (browser_color_preference_id);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2308,13 +2327,6 @@ CREATE UNIQUE INDEX http_methods__u_http_method ON land.http_methods USING btree
 
 
 --
--- Name: index_browsers_on_color_scheme_preferences; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_browsers_on_color_scheme_preferences ON land.browsers USING btree (dark_mode, light_mode, no_preference);
-
-
---
 -- Name: index_device_resolutions_on_device_resolution; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -2606,6 +2618,34 @@ CREATE INDEX visits_referer_id_idx ON land.visits USING btree (referer_id);
 --
 
 CREATE INDEX visits_user_agent_id_idx ON land.visits USING btree (user_agent_id);
+
+
+--
+-- Name: index_browser_color_preferences_on_color_scheme_preferences; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_browser_color_preferences_on_color_scheme_preferences ON public.browser_color_preferences USING btree (dark_mode, light_mode, no_preference);
+
+
+--
+-- Name: index_browser_color_preferences_on_dark_mode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_browser_color_preferences_on_dark_mode ON public.browser_color_preferences USING btree (dark_mode);
+
+
+--
+-- Name: index_browser_color_preferences_on_light_mode; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_browser_color_preferences_on_light_mode ON public.browser_color_preferences USING btree (light_mode);
+
+
+--
+-- Name: index_browser_color_preferences_on_no_preference; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_browser_color_preferences_on_no_preference ON public.browser_color_preferences USING btree (no_preference);
 
 
 --
@@ -2967,6 +3007,7 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20250827220507'),
 ('20250720195113'),
 ('20241218175001'),
 ('20241209201633'),

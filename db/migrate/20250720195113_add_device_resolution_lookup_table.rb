@@ -13,10 +13,5 @@ class AddDeviceResolutionLookupTable < ActiveRecord::Migration[7.1]
 
     add_column "land.user_agents", :device_resolution_id, :uuid
     add_index "land.user_agents", :device_resolution_id, name: 'index_user_agents_on_device_resolution_id'
-
-    add_column "land.browsers", :dark_mode, :boolean
-    add_column "land.browsers", :light_mode, :boolean
-    add_column "land.browsers", :no_preference, :boolean
-    add_index "land.browsers", [:dark_mode, :light_mode, :no_preference], name: 'index_browsers_on_color_scheme_preferences'
   end
 end
