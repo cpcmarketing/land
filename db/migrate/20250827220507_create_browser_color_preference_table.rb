@@ -9,5 +9,8 @@ class CreateBrowserColorPreferenceTable < ActiveRecord::Migration[7.2]
     end
 
     add_index :browser_color_preferences, [:dark_mode, :light_mode, :no_preference], name: 'index_browser_color_preferences_on_color_scheme_preferences'
+
+    add_column "land.user_agents", :browser_color_preference_id, :uuid
+    add_index "land.user_agents", :browser_color_preference_id, name: 'index_user_agents_on_browser_color_preference_id'
   end
 end

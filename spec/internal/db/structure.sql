@@ -1263,7 +1263,8 @@ CREATE TABLE land.user_agents (
     browser_version text,
     user_agent text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    device_resolution_id uuid
+    device_resolution_id uuid,
+    browser_color_preference_id uuid
 );
 
 
@@ -2380,6 +2381,13 @@ CREATE INDEX "index_land.events_on_request_id" ON land.events USING btree (reque
 --
 
 CREATE INDEX "index_land.pageviews_on_created_at" ON land.pageviews USING btree (created_at);
+
+
+--
+-- Name: index_user_agents_on_browser_color_preference_id; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_user_agents_on_browser_color_preference_id ON land.user_agents USING btree (browser_color_preference_id);
 
 
 --
