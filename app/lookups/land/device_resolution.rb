@@ -2,9 +2,8 @@ module Land
   class DeviceResolution < ApplicationRecord
     include TableName
 
-    lookup_by :device_resolution, cache: 1000, find_or_create: true
-
-    has_many :user_agents
-    has_many :devices
+    validates :width, presence: true
+    validates :height, presence: true
+    validates :orientation, presence: true
   end
 end

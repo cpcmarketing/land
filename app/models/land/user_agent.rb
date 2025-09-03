@@ -10,7 +10,6 @@ module Land
     lookup_for :device,            class_name: Device
     lookup_for :platform,          class_name: Platform
     lookup_for :browser,           class_name: Browser
-    lookup_for :device_resolution, class_name: DeviceResolution
 
     has_many :visits
   end
