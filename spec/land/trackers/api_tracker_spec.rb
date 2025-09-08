@@ -114,7 +114,6 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.user_agent.platform).to eq('Windows')
       expect(visit.user_agent.browser).to eq('Chrome')
       expect(visit.user_agent.browser_version).to eq('98')
-      expect(visit.user_agent.device_resolution).to eq('1920x1080')
 
       expect(Land::DeviceResolution.count).to eq(1)
       device_resolution = Land::DeviceResolution.find_by(device_resolution_id: visit.user_agent.device_resolution_id)
@@ -125,11 +124,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(device_resolution.height).to eq(1080)
       expect(device_resolution.orientation).to eq('landscape-primary')
 
-      expect(Land::Browser.count).to eq(1)
-      browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
-      expect(browser.dark_mode).to eq(false)
-      expect(browser.light_mode).to eq(true)
-      expect(browser.no_preference).to eq(false)
+      # expect(Land::BrowserColorPreference.count).to eq(1)
+      # id = visit.user_agent.browser_color_preference_id
+      # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+
+      # expect(bcp.dark_mode).to eq(false)
+      # expect(bcp.light_mode).to eq(true)
+      # expect(bcp.no_preference).to eq(false)
 
       expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
       expect(visit.raw_query_string).to eq(query_string)
@@ -180,15 +181,16 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.user_agent.platform).to eq('Unknown')
       expect(visit.user_agent.browser).to eq('Unknown Browser')
       expect(visit.user_agent.browser_version).to eq('0')
-      expect(visit.user_agent.device_resolution).to eq(nil)
 
       expect(Land::DeviceResolution.count).to eq(0)
 
-      expect(Land::Browser.count).to eq(1)
-      browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
-      expect(browser.dark_mode).to eq(nil)
-      expect(browser.light_mode).to eq(nil)
-      expect(browser.no_preference).to eq(nil)
+      # expect(Land::BrowserColorPreference.count).to eq(1)
+      # id = visit.user_agent.browser_color_preference_id
+      # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+
+      # expect(bcp.dark_mode).to eq(false)
+      # expect(bcp.light_mode).to eq(true)
+      # expect(bcp.no_preference).to eq(false)
 
       expect(visit.unaltered_ingress_url).to eq(nil)
       expect(visit.raw_query_string).to eq(nil)
@@ -232,7 +234,6 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.user_agent.platform).to eq('Windows')
       expect(visit.user_agent.browser).to eq('Chrome')
       expect(visit.user_agent.browser_version).to eq('98')
-      expect(visit.user_agent.device_resolution).to eq('1920x1080')
 
       expect(Land::DeviceResolution.count).to eq(1)
       device_resolution = Land::DeviceResolution.find_by(device_resolution_id: visit.user_agent.device_resolution_id)
@@ -243,11 +244,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(device_resolution.height).to eq(1080)
       expect(device_resolution.orientation).to eq('landscape-primary')
 
-      expect(Land::Browser.count).to eq(2)
-      browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
-      expect(browser.dark_mode).to eq(false)
-      expect(browser.light_mode).to eq(true)
-      expect(browser.no_preference).to eq(false)
+      # expect(Land::BrowserColorPreference.count).to eq(1)
+      # id = visit.user_agent.browser_color_preference_id
+      # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+
+      # expect(bcp.dark_mode).to eq(false)
+      # expect(bcp.light_mode).to eq(true)
+      # expect(bcp.no_preference).to eq(false)
 
       expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
       expect(visit.raw_query_string).to eq(query_string)
@@ -422,15 +425,9 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.user_agent.platform).to eq('Unknown')
       expect(visit.user_agent.browser).to eq('Unknown Browser')
       expect(visit.user_agent.browser_version).to eq('0')
-      expect(visit.user_agent.device_resolution).to eq(nil)
 
       expect(Land::DeviceResolution.count).to eq(0)
-
-      expect(Land::Browser.count).to eq(1)
-      browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
-      expect(browser.dark_mode).to eq(nil)
-      expect(browser.light_mode).to eq(nil)
-      expect(browser.no_preference).to eq(nil)
+      # expect(Land::BrowserColorPreference.count).to eq(0)
 
       expect(visit.unaltered_ingress_url).to eq(nil)
       expect(visit.raw_query_string).to eq(nil)
@@ -478,8 +475,6 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(visit.user_agent.platform).to eq('Windows')
         expect(visit.user_agent.browser).to eq('Chrome')
         expect(visit.user_agent.browser_version).to eq('98')
-        expect(visit.user_agent.device_resolution).to eq('1920x1080')
-
         expect(Land::DeviceResolution.count).to eq(1)
         device_resolution = Land::DeviceResolution.find_by(device_resolution_id: visit.user_agent.device_resolution_id)
 
@@ -489,11 +484,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(device_resolution.height).to eq(1080)
         expect(device_resolution.orientation).to eq('landscape-primary')
 
-        expect(Land::Browser.count).to eq(2)
-        browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
-        expect(browser.dark_mode).to eq(false)
-        expect(browser.light_mode).to eq(true)
-        expect(browser.no_preference).to eq(false)
+        # expect(Land::BrowserColorPreference.count).to eq(1)
+        # id = visit.user_agent.browser_color_preference_id
+        # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+
+        # expect(bcp.dark_mode).to eq(false)
+        # expect(bcp.light_mode).to eq(true)
+        # expect(bcp.no_preference).to eq(false)
 
         expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
         expect(visit.raw_query_string).to eq(query_string)
@@ -532,7 +529,6 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(visit.user_agent.platform).to eq('macOS')
         expect(visit.user_agent.browser).to eq('Safari')
         expect(visit.user_agent.browser_version).to eq('16')
-        expect(visit.user_agent.device_resolution).to eq('1920x1080')
 
         expect(Land::DeviceResolution.count).to eq(1)
         device_resolution = Land::DeviceResolution.find_by(device_resolution_id: visit.user_agent.device_resolution_id)
@@ -543,11 +539,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(device_resolution.height).to eq(1080)
         expect(device_resolution.orientation).to eq('landscape-secondary')
 
-        expect(Land::Browser.count).to eq(1)
-        browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
-        expect(browser.dark_mode).to eq(true)
-        expect(browser.light_mode).to eq(false)
-        expect(browser.no_preference).to eq(false)
+        # expect(Land::BrowserColorPreference.count).to eq(1)
+        # id = visit.user_agent.browser_color_preference_id
+        # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+
+        # expect(bcp.dark_mode).to eq(false)
+        # expect(bcp.light_mode).to eq(true)
+        # expect(bcp.no_preference).to eq(false)
 
         expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
         expect(visit.raw_query_string).to eq(query_string)
@@ -589,7 +587,6 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(visit.user_agent.platform).to eq('Windows')
         expect(visit.user_agent.browser).to eq('Chrome')
         expect(visit.user_agent.browser_version).to eq('98')
-        expect(visit.user_agent.device_resolution).to eq('1920x1080')
 
         expect(Land::DeviceResolution.count).to eq(2)
         device_resolution = Land::DeviceResolution.find_by(device_resolution_id: visit.user_agent.device_resolution_id)
@@ -600,11 +597,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(device_resolution.height).to eq(1080)
         expect(device_resolution.orientation).to eq('landscape-primary')
 
-        expect(Land::Browser.count).to eq(2)
-        browser = Land::Browser.find_by(browser_id: visit.user_agent.browser_id)
-        expect(browser.dark_mode).to eq(false)
-        expect(browser.light_mode).to eq(true)
-        expect(browser.no_preference).to eq(false)
+        # expect(Land::BrowserColorPreference.count).to eq(1)
+        # id = visit.user_agent.browser_color_preference_id
+        # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+
+        # expect(bcp.dark_mode).to eq(false)
+        # expect(bcp.light_mode).to eq(true)
+        # expect(bcp.no_preference).to eq(false)
 
         expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
         expect(visit.raw_query_string).to eq(query_string)

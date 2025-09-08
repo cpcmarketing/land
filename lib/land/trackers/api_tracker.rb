@@ -215,15 +215,11 @@ module Land
         browser = ::Browser.new(user_agent)
         land_browser = Land::Browser[browser.name]
 
-        land_browser.dark_mode = params.dig('color_scheme_preference', 'is_dark_mode')
-        land_browser.light_mode = params.dig('color_scheme_preference', 'is_light_mode')
-        land_browser.no_preference = params.dig('color_scheme_preference', 'is_no_preference')
-
         @user_agent.browser = land_browser
         @user_agent.device = Device[browser.device.name]
         @user_agent.platform = Platform[browser.platform.name]
         @user_agent.browser_version = browser.version
-        @user_agent.device_resolution = device_resolution
+        @user_agent.device_resolution_id = device_resolution&.id
 
         begin
           @user_agent.save! if @user_agent.changed?
@@ -246,13 +242,12 @@ module Land
 
         return unless device_width && device_height && device_orientation
 
-        resolution = DeviceResolution.find_or_initialize_by(
+        resolution = DeviceResolution.find_or_create_by(
+          device_resolution: "#{device_width}x#{device_height}",
           width: device_width,
           height: device_height,
           orientation: device_orientation
         )
-
-        resolution.device_resolution = "#{device_width}x#{device_height}"
 
         resolution&.save! if resolution&.changed?
         resolution
