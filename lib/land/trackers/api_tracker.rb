@@ -220,6 +220,7 @@ module Land
         @user_agent.platform = Platform[browser.platform.name]
         @user_agent.browser_version = browser.version
         @user_agent.device_resolution_id = device_resolution&.id
+        @user_agent.browser_color_preference_id = browser_color_preference&.id
 
         begin
           @user_agent.save! if @user_agent.changed?
@@ -251,6 +252,25 @@ module Land
 
         resolution&.save! if resolution&.changed?
         resolution
+      rescue ActiveRecord::RecordNotUnique
+        retry
+      end
+
+      def browser_color_preference
+        dark_mode = params.dig('color_scheme_preference', 'is_dark_mode')
+        light_mode = params.dig('color_scheme_preference', 'is_light_mode')
+        no_preference = params.dig('color_scheme_preference', 'is_no_preference')
+        
+        return unless dark_mode && light_mode && no_preference
+        
+        preference = BrowserColorPreference.find_or_create_by(
+          dark_mode: dark_mode,
+          light_mode: light_mode,
+          no_preference: no_preference
+        )
+
+        preference&.save! if preference&.changed?
+        preference
       rescue ActiveRecord::RecordNotUnique
         retry
       end

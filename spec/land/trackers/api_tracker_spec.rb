@@ -124,13 +124,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(device_resolution.height).to eq(1080)
       expect(device_resolution.orientation).to eq('landscape-primary')
 
-      # expect(Land::BrowserColorPreference.count).to eq(1)
-      # id = visit.user_agent.browser_color_preference_id
-      # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+      expect(Land::BrowserColorPreference.count).to eq(1)
+      id = visit.user_agent.browser_color_preference_id
+      bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
 
-      # expect(bcp.dark_mode).to eq(false)
-      # expect(bcp.light_mode).to eq(true)
-      # expect(bcp.no_preference).to eq(false)
+      expect(bcp.dark_mode).to eq(false)
+      expect(bcp.light_mode).to eq(true)
+      expect(bcp.no_preference).to eq(false)
 
       expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
       expect(visit.raw_query_string).to eq(query_string)
@@ -183,14 +183,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.user_agent.browser_version).to eq('0')
 
       expect(Land::DeviceResolution.count).to eq(0)
-
-      # expect(Land::BrowserColorPreference.count).to eq(1)
-      # id = visit.user_agent.browser_color_preference_id
-      # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
-
-      # expect(bcp.dark_mode).to eq(false)
-      # expect(bcp.light_mode).to eq(true)
-      # expect(bcp.no_preference).to eq(false)
+      expect(Land::BrowserColorPreference.count).to eq(0)
 
       expect(visit.unaltered_ingress_url).to eq(nil)
       expect(visit.raw_query_string).to eq(nil)
@@ -244,13 +237,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(device_resolution.height).to eq(1080)
       expect(device_resolution.orientation).to eq('landscape-primary')
 
-      # expect(Land::BrowserColorPreference.count).to eq(1)
-      # id = visit.user_agent.browser_color_preference_id
-      # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+      expect(Land::BrowserColorPreference.count).to eq(1)
+      id = visit.user_agent.browser_color_preference_id
+      bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
 
-      # expect(bcp.dark_mode).to eq(false)
-      # expect(bcp.light_mode).to eq(true)
-      # expect(bcp.no_preference).to eq(false)
+      expect(bcp.dark_mode).to eq(false)
+      expect(bcp.light_mode).to eq(true)
+      expect(bcp.no_preference).to eq(false)
 
       expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
       expect(visit.raw_query_string).to eq(query_string)
@@ -427,7 +420,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.user_agent.browser_version).to eq('0')
 
       expect(Land::DeviceResolution.count).to eq(0)
-      # expect(Land::BrowserColorPreference.count).to eq(0)
+      expect(Land::BrowserColorPreference.count).to eq(0)
 
       expect(visit.unaltered_ingress_url).to eq(nil)
       expect(visit.raw_query_string).to eq(nil)
@@ -484,13 +477,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(device_resolution.height).to eq(1080)
         expect(device_resolution.orientation).to eq('landscape-primary')
 
-        # expect(Land::BrowserColorPreference.count).to eq(1)
-        # id = visit.user_agent.browser_color_preference_id
-        # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+        expect(Land::BrowserColorPreference.count).to eq(1)
+        id = visit.user_agent.browser_color_preference_id
+        bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
 
-        # expect(bcp.dark_mode).to eq(false)
-        # expect(bcp.light_mode).to eq(true)
-        # expect(bcp.no_preference).to eq(false)
+        expect(bcp.dark_mode).to eq(false)
+        expect(bcp.light_mode).to eq(true)
+        expect(bcp.no_preference).to eq(false)
 
         expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
         expect(visit.raw_query_string).to eq(query_string)
@@ -539,13 +532,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(device_resolution.height).to eq(1080)
         expect(device_resolution.orientation).to eq('landscape-secondary')
 
-        # expect(Land::BrowserColorPreference.count).to eq(1)
-        # id = visit.user_agent.browser_color_preference_id
-        # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+        expect(Land::BrowserColorPreference.count).to eq(1)
+        id = visit.user_agent.browser_color_preference_id
+        bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
 
-        # expect(bcp.dark_mode).to eq(false)
-        # expect(bcp.light_mode).to eq(true)
-        # expect(bcp.no_preference).to eq(false)
+        expect(bcp.dark_mode).to eq(true)
+        expect(bcp.light_mode).to eq(false)
+        expect(bcp.no_preference).to eq(false)
 
         expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
         expect(visit.raw_query_string).to eq(query_string)
@@ -597,13 +590,13 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(device_resolution.height).to eq(1080)
         expect(device_resolution.orientation).to eq('landscape-primary')
 
-        # expect(Land::BrowserColorPreference.count).to eq(1)
-        # id = visit.user_agent.browser_color_preference_id
-        # bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
+        expect(Land::BrowserColorPreference.count).to eq(1)
+        id = visit.user_agent.browser_color_preference_id
+        bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
 
-        # expect(bcp.dark_mode).to eq(false)
-        # expect(bcp.light_mode).to eq(true)
-        # expect(bcp.no_preference).to eq(false)
+        expect(bcp.dark_mode).to eq(false)
+        expect(bcp.light_mode).to eq(true)
+        expect(bcp.no_preference).to eq(false)
 
         expect(visit.unaltered_ingress_url).to eq(unaltered_ingress_url)
         expect(visit.raw_query_string).to eq(query_string)
