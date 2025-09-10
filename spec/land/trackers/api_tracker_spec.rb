@@ -590,7 +590,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
         expect(device_resolution.height).to eq(1080)
         expect(device_resolution.orientation).to eq('landscape-primary')
 
-        expect(Land::BrowserColorPreference.count).to eq(1)
+        expect(Land::BrowserColorPreference.count).to eq(2)
         id = visit.user_agent.browser_color_preference_id
         bcp = Land::BrowserColorPreference.find_by(browser_color_preference_id: id)
 
