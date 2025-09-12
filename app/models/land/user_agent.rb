@@ -13,10 +13,12 @@ module Land
 
     has_many :visits
 
+    belongs_to :browser, optional: true
     belongs_to :device_resolution, optional: true
     belongs_to :browser_color_preference, optional: true
-    belongs_to :browser, optional: true
 
     accepts_nested_attributes_for :browser
+    accepts_nested_attributes_for :browser_color_preference
+    accepts_nested_attributes_for :device_resolution
   end
 end

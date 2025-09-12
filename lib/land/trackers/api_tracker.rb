@@ -235,7 +235,7 @@ module Land
       
         return unless device_width && device_height && device_orientation
       
-        DeviceResolution.find_or_create_by(
+        DeviceResolution.find_or_initialize_by(
           device_resolution: "#{device_width}x#{device_height}",
           width: device_width,
           height: device_height,
@@ -250,7 +250,7 @@ module Land
       
         return unless dark_mode && light_mode && no_preference
       
-        BrowserColorPreference.find_or_create_by(
+        BrowserColorPreference.find_or_initialize_by(
           dark_mode: dark_mode,
           light_mode: light_mode,
           no_preference: no_preference
