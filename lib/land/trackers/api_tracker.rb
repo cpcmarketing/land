@@ -243,36 +243,26 @@ module Land
 
         return unless device_width && device_height && device_orientation
 
-        resolution = DeviceResolution.find_or_create_by(
+        DeviceResolution.find_or_create_by(
           device_resolution: "#{device_width}x#{device_height}",
           width: device_width,
           height: device_height,
           orientation: device_orientation
         )
-
-        resolution&.save! if resolution&.changed?
-        resolution
-      rescue ActiveRecord::RecordNotUnique
-        retry
       end
 
       def browser_color_preference
         dark_mode = params.dig('color_scheme_preference', 'is_dark_mode')
         light_mode = params.dig('color_scheme_preference', 'is_light_mode')
         no_preference = params.dig('color_scheme_preference', 'is_no_preference')
-        
+
         return unless dark_mode && light_mode && no_preference
-        
-        preference = BrowserColorPreference.find_or_create_by(
+
+        BrowserColorPreference.find_or_create_by(
           dark_mode: dark_mode,
           light_mode: light_mode,
           no_preference: no_preference
         )
-
-        preference&.save! if preference&.changed?
-        preference
-      rescue ActiveRecord::RecordNotUnique
-        retry
       end
 
       def add_error_tag_to_land_span(error)
