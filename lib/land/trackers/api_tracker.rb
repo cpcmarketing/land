@@ -229,36 +229,32 @@ module Land
       end
 
       def device_resolution
-        return @device_resolution if defined?(@device_resolution)
-
         device_width = params.dig('device_resolution', 'width')
         device_height = params.dig('device_resolution', 'height')
         device_orientation = params.dig('device_resolution', 'orientation')
-
-        @device_resolution = if device_width && device_height && device_orientation
-                               DeviceResolution.find_or_create_by(
-                                 device_resolution: "#{device_width}x#{device_height}",
-                                 width: device_width,
-                                 height: device_height,
-                                 orientation: device_orientation
-                               )
-                             end
+      
+        return unless device_width && device_height && device_orientation
+      
+        DeviceResolution.find_or_create_by(
+          device_resolution: "#{device_width}x#{device_height}",
+          width: device_width,
+          height: device_height,
+          orientation: device_orientation
+        )
       end
-
+      
       def browser_color_preference
-        return @browser_color_preference if defined?(@browser_color_preference)
-
         dark_mode = params.dig('color_scheme_preference', 'is_dark_mode')
         light_mode = params.dig('color_scheme_preference', 'is_light_mode')
         no_preference = params.dig('color_scheme_preference', 'is_no_preference')
-
-        @browser_color_preference = if dark_mode && light_mode && no_preference
-                                      BrowserColorPreference.find_or_create_by(
-                                        dark_mode: dark_mode,
-                                        light_mode: light_mode,
-                                        no_preference: no_preference
-                                      )
-                                    end
+      
+        return unless dark_mode && light_mode && no_preference
+      
+        BrowserColorPreference.find_or_create_by(
+          dark_mode: dark_mode,
+          light_mode: light_mode,
+          no_preference: no_preference
+        )
       end
 
       def add_error_tag_to_land_span(error)
