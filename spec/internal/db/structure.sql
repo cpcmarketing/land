@@ -2223,6 +2223,13 @@ CREATE UNIQUE INDEX brands__u_brand ON land.brands USING btree (brand);
 
 
 --
+-- Name: browser_color_preferences_dark_mode_light_mode_no_pref_idx; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE UNIQUE INDEX browser_color_preferences_dark_mode_light_mode_no_pref_idx ON land.browser_color_preferences USING btree (dark_mode, light_mode, no_preference);
+
+
+--
 -- Name: browsers__u_browser; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -2262,6 +2269,13 @@ CREATE UNIQUE INDEX contents__u_content ON land.contents USING btree (content);
 --
 
 CREATE UNIQUE INDEX creatives__u_creative ON land.creatives USING btree (creative);
+
+
+--
+-- Name: device_resolutions_width_height_orientation_idx; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE UNIQUE INDEX device_resolutions_width_height_orientation_idx ON land.device_resolutions USING btree (width, height, orientation);
 
 
 --
@@ -2328,13 +2342,6 @@ CREATE UNIQUE INDEX http_methods__u_http_method ON land.http_methods USING btree
 
 
 --
--- Name: index_browser_color_preferences_on_color_scheme_preferences; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_browser_color_preferences_on_color_scheme_preferences ON land.browser_color_preferences USING btree (dark_mode, light_mode, no_preference);
-
-
---
 -- Name: index_browser_color_preferences_on_dark_mode; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -2360,13 +2367,6 @@ CREATE INDEX index_browser_color_preferences_on_no_preference ON land.browser_co
 --
 
 CREATE INDEX index_device_resolutions_on_device_resolution ON land.device_resolutions USING btree (device_resolution);
-
-
---
--- Name: index_device_resolutions_on_dims_and_orientation; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_device_resolutions_on_dims_and_orientation ON land.device_resolutions USING btree (width, height, orientation);
 
 
 --
@@ -2409,20 +2409,6 @@ CREATE INDEX "index_land.events_on_request_id" ON land.events USING btree (reque
 --
 
 CREATE INDEX "index_land.pageviews_on_created_at" ON land.pageviews USING btree (created_at);
-
-
---
--- Name: index_user_agents_on_browser_color_preference_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_user_agents_on_browser_color_preference_id ON land.user_agents USING btree (browser_color_preference_id);
-
-
---
--- Name: index_user_agents_on_device_resolution_id; Type: INDEX; Schema: land; Owner: -
---
-
-CREATE INDEX index_user_agents_on_device_resolution_id ON land.user_agents USING btree (device_resolution_id);
 
 
 --
@@ -2846,6 +2832,22 @@ ALTER TABLE ONLY land.events
 
 ALTER TABLE ONLY land.events
     ADD CONSTRAINT events_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES land.visits(visit_id);
+
+
+--
+-- Name: user_agents fk_rails_8c451b00f1; Type: FK CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.user_agents
+    ADD CONSTRAINT fk_rails_8c451b00f1 FOREIGN KEY (device_resolution_id) REFERENCES land.device_resolutions(device_resolution_id);
+
+
+--
+-- Name: user_agents fk_rails_dc338179ad; Type: FK CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.user_agents
+    ADD CONSTRAINT fk_rails_dc338179ad FOREIGN KEY (browser_color_preference_id) REFERENCES land.browser_color_preferences(browser_color_preference_id);
 
 
 --

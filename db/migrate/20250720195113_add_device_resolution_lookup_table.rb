@@ -1,7 +1,8 @@
 class AddDeviceResolutionLookupTable < ActiveRecord::Migration[7.1]
   def change
-    create_table "land.device_resolutions", id: :uuid, default: 'gen_random_uuid()', primary_key: :device_resolution_id do |t|
-      t.string :device_resolution, index: true 
+    create_table 'land.device_resolutions', id: :uuid, default: 'gen_random_uuid()',
+                                            primary_key: :device_resolution_id do |t|
+      t.string :device_resolution, index: true
       t.integer :width, index: true
       t.integer :height, index: true
       t.string :orientation, index: true
@@ -9,9 +10,11 @@ class AddDeviceResolutionLookupTable < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index "land.device_resolutions", [:width, :height, :orientation], name: 'index_device_resolutions_on_dims_and_orientation'
+    add_index 'land.device_resolutions', %i[width height orientation],
+              name: 'device_resolutions_width_height_orientation_idx', unique: true
 
-    add_column "land.user_agents", :device_resolution_id, :uuid
-    add_index "land.user_agents", :device_resolution_id, name: 'index_user_agents_on_device_resolution_id'
+    add_column 'land.user_agents', :device_resolution_id, :uuid
+    add_foreign_key 'land.user_agents', 'land.device_resolutions', column: :device_resolution_id,
+                                                                   primary_key: :device_resolution_id
   end
 end
