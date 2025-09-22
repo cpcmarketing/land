@@ -2,6 +2,8 @@ module Land
   class BrowserColorPreference < ApplicationRecord
     include TableName
 
+    has_many :user_agents
+
     validates :dark_mode,
               inclusion: { in: [true, false] },
               uniqueness: {
