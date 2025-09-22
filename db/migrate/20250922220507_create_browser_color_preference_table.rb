@@ -1,4 +1,4 @@
-class CreateBrowserColorPreferenceTable < ActiveRecord::Migration[7.2]
+class CreateBrowserColorPreferenceTable < ActiveRecord::Migration[7.1]
   def change
     create_table 'land.browser_color_preferences', id: :uuid, default: 'gen_random_uuid()',
                                                    primary_key: :browser_color_preference_id do |t|
