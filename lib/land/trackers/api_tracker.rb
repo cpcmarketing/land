@@ -244,12 +244,13 @@ module Land
       end
 
       def browser_color_preference
-        dark_mode = params.dig('color_scheme_preference', 'is_dark_mode')
-        light_mode = params.dig('color_scheme_preference', 'is_light_mode')
-        no_preference = params.dig('color_scheme_preference', 'is_no_preference')
+        color_preference = params['color_scheme_preference']
+        return unless color_preference
 
-        return unless dark_mode && light_mode && no_preference
-
+        dark_mode = color_preference['is_dark_mode']
+        light_mode = color_preference['is_light_mode']
+        no_preference = color_preference['is_no_preference']
+      
         BrowserColorPreference.find_or_initialize_by(
           dark_mode: dark_mode,
           light_mode: light_mode,
