@@ -5,12 +5,16 @@ module Land
     ALLOWED_NEW_VISIT_REASONS = %w[referer_changed? attribution_changed? user_agent_changed? visit_stale?]
     attr_reader :enabled, :secure_cookie, :identify_crawlers, :logger
 
-    attr_writer :blank_user_agent_string
+    attr_writer :blank_user_agent_string, :api_tracking_only
     attr_writer :schema, :untracked_ips, :untracked_paths
 
     def initialize
       @enabled = false
       @secure_cookie = false
+    end
+
+    def api_tracking_only
+      @api_tracking_only ||= false
     end
 
     def blank_user_agent_string
