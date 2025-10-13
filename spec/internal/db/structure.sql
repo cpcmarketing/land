@@ -17,13 +17,6 @@ CREATE SCHEMA land;
 
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
---
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -270,6 +263,20 @@ ALTER SEQUENCE land.brands_brand_id_seq OWNED BY land.brands.brand_id;
 
 
 --
+-- Name: browser_color_preferences; Type: TABLE; Schema: land; Owner: -
+--
+
+CREATE TABLE land.browser_color_preferences (
+    browser_color_preference_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    dark_mode boolean,
+    light_mode boolean,
+    no_preference boolean,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
 -- Name: browsers; Type: TABLE; Schema: land; Owner: -
 --
 
@@ -451,6 +458,21 @@ CREATE SEQUENCE land.creatives_creative_id_seq
 --
 
 ALTER SEQUENCE land.creatives_creative_id_seq OWNED BY land.creatives.creative_id;
+
+
+--
+-- Name: device_resolutions; Type: TABLE; Schema: land; Owner: -
+--
+
+CREATE TABLE land.device_resolutions (
+    device_resolution_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    device_resolution character varying,
+    width integer,
+    height integer,
+    orientation character varying,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
 
 
 --
@@ -1254,7 +1276,9 @@ CREATE TABLE land.user_agents (
     browser_id smallint,
     browser_version text,
     user_agent text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    device_resolution_id uuid,
+    browser_color_preference_id uuid
 );
 
 
@@ -1658,6 +1682,14 @@ ALTER TABLE ONLY land.brands
 
 
 --
+-- Name: browser_color_preferences browser_color_preferences_pkey; Type: CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.browser_color_preferences
+    ADD CONSTRAINT browser_color_preferences_pkey PRIMARY KEY (browser_color_preference_id);
+
+
+--
 -- Name: browsers browsers_pkey; Type: CONSTRAINT; Schema: land; Owner: -
 --
 
@@ -1711,6 +1743,14 @@ ALTER TABLE ONLY land.cookies
 
 ALTER TABLE ONLY land.creatives
     ADD CONSTRAINT creatives_pkey PRIMARY KEY (creative_id);
+
+
+--
+-- Name: device_resolutions device_resolutions_pkey; Type: CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.device_resolutions
+    ADD CONSTRAINT device_resolutions_pkey PRIMARY KEY (device_resolution_id);
 
 
 --
@@ -2183,6 +2223,13 @@ CREATE UNIQUE INDEX brands__u_brand ON land.brands USING btree (brand);
 
 
 --
+-- Name: browser_color_preferences_dark_mode_light_mode_no_pref_idx; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE UNIQUE INDEX browser_color_preferences_dark_mode_light_mode_no_pref_idx ON land.browser_color_preferences USING btree (dark_mode, light_mode, no_preference);
+
+
+--
 -- Name: browsers__u_browser; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -2222,6 +2269,13 @@ CREATE UNIQUE INDEX contents__u_content ON land.contents USING btree (content);
 --
 
 CREATE UNIQUE INDEX creatives__u_creative ON land.creatives USING btree (creative);
+
+
+--
+-- Name: device_resolutions_width_height_orientation_idx; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE UNIQUE INDEX device_resolutions_width_height_orientation_idx ON land.device_resolutions USING btree (width, height, orientation);
 
 
 --
@@ -2285,6 +2339,55 @@ CREATE UNIQUE INDEX experiments__u_experiment ON land.experiments USING btree (e
 --
 
 CREATE UNIQUE INDEX http_methods__u_http_method ON land.http_methods USING btree (http_method);
+
+
+--
+-- Name: index_browser_color_preferences_on_dark_mode; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_browser_color_preferences_on_dark_mode ON land.browser_color_preferences USING btree (dark_mode);
+
+
+--
+-- Name: index_browser_color_preferences_on_light_mode; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_browser_color_preferences_on_light_mode ON land.browser_color_preferences USING btree (light_mode);
+
+
+--
+-- Name: index_browser_color_preferences_on_no_preference; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_browser_color_preferences_on_no_preference ON land.browser_color_preferences USING btree (no_preference);
+
+
+--
+-- Name: index_device_resolutions_on_device_resolution; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_device_resolution ON land.device_resolutions USING btree (device_resolution);
+
+
+--
+-- Name: index_device_resolutions_on_height; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_height ON land.device_resolutions USING btree (height);
+
+
+--
+-- Name: index_device_resolutions_on_orientation; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_orientation ON land.device_resolutions USING btree (orientation);
+
+
+--
+-- Name: index_device_resolutions_on_width; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_device_resolutions_on_width ON land.device_resolutions USING btree (width);
 
 
 --
@@ -2732,6 +2835,22 @@ ALTER TABLE ONLY land.events
 
 
 --
+-- Name: user_agents fk_rails_8c451b00f1; Type: FK CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.user_agents
+    ADD CONSTRAINT fk_rails_8c451b00f1 FOREIGN KEY (device_resolution_id) REFERENCES land.device_resolutions(device_resolution_id);
+
+
+--
+-- Name: user_agents fk_rails_dc338179ad; Type: FK CONSTRAINT; Schema: land; Owner: -
+--
+
+ALTER TABLE ONLY land.user_agents
+    ADD CONSTRAINT fk_rails_dc338179ad FOREIGN KEY (browser_color_preference_id) REFERENCES land.browser_color_preferences(browser_color_preference_id);
+
+
+--
 -- Name: ownerships ownerships_cookie_id_fkey; Type: FK CONSTRAINT; Schema: land; Owner: -
 --
 
@@ -2898,6 +3017,8 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20250922220507'),
+('20250922195113'),
 ('20241218175001'),
 ('20241209201633'),
 ('20231211214820'),

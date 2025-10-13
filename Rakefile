@@ -44,7 +44,6 @@ end
 # restart
 %w[
   app:template
-  app:update
 ].each { |name| Rake::Task[name].clear }
 
 # TODO(kyle): This task 'secret' caused an error on bin/setup

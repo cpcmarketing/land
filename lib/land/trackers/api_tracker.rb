@@ -16,10 +16,7 @@ module Land
         # Here we are going to tag the span with the error if Datadog span
         # exists This is called safely to avoid errors in the case that Datadog
         # is not present
-        if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
-          Datadog::Tracing.active_span&.set_error(e)
-        end
-
+        add_error_tag_to_land_span(e)
         Land.config.logger.error "Error recording visit: #{e.message}"
       end
 
@@ -39,50 +36,54 @@ module Land
           Cookie.find_or_create_by(cookie_id: @cookie_id)
         rescue ActiveRecord::RecordNotUnique
           retry
+        rescue ActiveRecord::RecordInvalid => e
+          retry if e.message == 'Validation failed: Cookie has already been taken'
+
+          raise e
         end
       end
 
       # Overriding record_visit method as we set the visit id from the API param,
       # so we have to check the Land::Visit does not exist
       def record_visit
-        Visit.transaction do
-          @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
-            visit.attribution      = attribution
-            visit.cookie_id        = @cookie_id
-            visit.referer_id       = referer&.id
-            visit.user_agent_id    = user_agent&.id
-            visit.ip_address       = remote_ip
-            visit.domain_id        = request_domain&.id
-            visit.raw_query_string = referer_uri&.query
-            visit.click_id         = tracking_params['click_id']
-          end
-
-          # Api request race conditions mean that the visit may be created on a call
-          # that is not the visit call. Query strings are passed from the front end
-          # visit API call. If the visit is created on a different call, the query
-          # string will be updated whenever the visit API call is completed.
-
-          # Here we only invoke the visit attribution update if the request is a
-          # visit API call
-          if controller.request.path =~ VISIT_ENDPOINT_REGEX
-            maybe_set_raw_query_string
-            maybe_set_unaltered_ingress_url
-            maybe_set_visit_attribution
-            maybe_set_visit_referer
-            maybe_set_user_agent
-            maybe_set_click_id
-          end
-
-          # When bots click links, we do not get cookies loaded, so no visit call is made
-          # This will set attribution if there is no visit call made
-          maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
-
-          @visit&.save! if @visit&.changed?
-        rescue ActiveRecord::RecordNotUnique
-          retry
+        @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
+          visit.attribution = attribution
+          visit.cookie_id        = @cookie_id
+          visit.referer_id       = referer&.id
+          visit.user_agent_id    = user_agent&.id
+          visit.ip_address       = remote_ip
+          visit.domain_id        = request_domain&.id
+          visit.raw_query_string = referer_uri&.query
+          visit.click_id         = tracking_params['click_id']
         end
 
-        @visit.visit_id
+        # Api request race conditions mean that the visit may be created on a call
+        # that is not the visit call. Query strings are passed from the front end
+        # visit API call. If the visit is created on a different call, the query
+        # string will be updated whenever the visit API call is completed.
+
+        # Here we only invoke the visit attribution update if the request is a
+        # visit API call
+        if controller.request.path =~ VISIT_ENDPOINT_REGEX
+          maybe_set_raw_query_string
+          maybe_set_unaltered_ingress_url
+          maybe_set_visit_attribution
+          maybe_set_visit_referer
+          maybe_set_user_agent
+          maybe_set_click_id
+        end
+
+        # When bots click links, we do not get cookies loaded, so no visit call is made
+        # This will set attribution if there is no visit call made
+        maybe_set_visit_attribution_from_pageview if controller.request.path =~ PAGEVIEW_ENDPOINT_REGEX
+
+        @visit&.save! if @visit&.changed?
+      rescue ActiveRecord::RecordNotUnique
+        retry
+      rescue ActiveRecord::RecordInvalid => e
+        retry if e.message == 'Validation failed: Visit has already been taken'
+
+        raise e
       end
 
       def maybe_set_raw_query_string
@@ -171,13 +172,9 @@ module Land
       # Access Methods --------------------------------------------
       def new_visit? = @visit.nil?
 
-      def page_view_query_string
-        request && request.params['page_view_query_string']
-      end
-
-      def page_view_path
-        request && request.params['page_view_path']
-      end
+      def params = request && request.params
+      def page_view_query_string = params['page_view_query_string']
+      def page_view_path = params['page_view_path']
 
       def raw_user_agent
         @raw_user_agent ||= request.params['user_agent'] || Land.config.blank_user_agent_string
@@ -202,23 +199,70 @@ module Land
                      Land.config.blank_user_agent_string
 
         @user_agent = UserAgent[user_agent]
+        @user_agent.user_agent_type = UserAgentType['user']
 
         if Land.config.identify_crawlers && defined?(CrawlerDetect)
           crawler_detect = CrawlerDetect.new(user_agent)
-          user_agent_type = crawler_detect.is_crawler? ? 'crawl' : 'api'
-          @user_agent.update(user_agent_type: UserAgentType[user_agent_type])
+          @user_agent.user_agent_type = UserAgentType['crawl'] if crawler_detect.is_crawler?
         end
 
         browser = ::Browser.new(user_agent)
+        land_browser = Land::Browser[browser.name]
 
-        @user_agent.update(
-          browser: Browser[browser.name],
-          device: Device[browser.device.name],
-          platform: Platform[browser.platform.name],
-          browser_version: browser.version
-        )
+        @user_agent.browser = land_browser
+        @user_agent.device = Device[browser.device.name]
+        @user_agent.platform = Platform[browser.platform.name]
+        @user_agent.browser_version = browser.version
+        @user_agent.device_resolution = device_resolution
+        @user_agent.browser_color_preference = browser_color_preference
+
+        @user_agent.save! if @user_agent.changed?
 
         @user_agent
+      rescue ActiveRecord::RecordNotUnique
+        retry
+      rescue ActiveRecord::RecordInvalid => e
+        retry if e.message =~ /Validation\ failed:\ .*\ has\ already\ been\ taken/
+
+        add_error_tag_to_land_span(e)
+        @user_agent
+      end
+
+      def device_resolution
+        device_width = params.dig('device_resolution', 'width')
+        device_height = params.dig('device_resolution', 'height')
+        device_orientation = params.dig('device_resolution', 'orientation')
+
+        return unless device_width && device_height && device_orientation
+
+        DeviceResolution.find_or_initialize_by(
+          device_resolution: "#{device_width}x#{device_height}",
+          width: device_width,
+          height: device_height,
+          orientation: device_orientation
+        )
+      end
+
+      def browser_color_preference
+        color_preference = params['color_scheme_preference']
+        return unless color_preference
+
+        dark_mode = color_preference['is_dark_mode']
+        light_mode = color_preference['is_light_mode']
+        no_preference = color_preference['is_no_preference']
+      
+        BrowserColorPreference.find_or_initialize_by(
+          dark_mode: dark_mode,
+          light_mode: light_mode,
+          no_preference: no_preference
+        )
+      end
+
+      def add_error_tag_to_land_span(error)
+        if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+          Datadog::Tracing.active_span&.set_error(error)
+        end
+        Land.config.logger.error "Land::Trackers::ApiTracker Error: #{error}"
       end
     end
   end

@@ -3,7 +3,7 @@
 module Land
   class Config < HashWithIndifferentAccess
     ALLOWED_NEW_VISIT_REASONS = %w[referer_changed? attribution_changed? user_agent_changed? visit_stale?]
-    attr_reader :enabled, :secure_cookie, :identify_crawlers
+    attr_reader :enabled, :secure_cookie, :identify_crawlers, :logger
 
     attr_writer :blank_user_agent_string, :api_tracking_only
     attr_writer :schema, :untracked_ips, :untracked_paths
@@ -78,6 +78,10 @@ module Land
       raise ArgumentError, "must be an array of strings" unless value.is_a?(Array) && value.all? { |v| v.is_a?(String) }
       raise ArgumentError, "must be a subset of #{ALLOWED_NEW_VISIT_REASONS}" unless (value - ALLOWED_NEW_VISIT_REASONS).empty?
       @new_visit_reasons = value
+    end
+
+    def logger
+      @logger ||= (defined?(Rails) ? Rails.logger : Logger.new($stdout))
     end
   end
 end

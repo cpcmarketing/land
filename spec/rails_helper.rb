@@ -13,7 +13,6 @@ Combustion.initialize! :active_record,
                        load_schema: false,
                        database_migrate: false
 
-
 require 'land'
 
 Land.configure do |config|
@@ -41,8 +40,6 @@ Land.configure do |config|
   # Timeout before a new visit is created
   config.visit_timeout = 1.hour
 end
-
-
 
 require 'spec_helper'
 
@@ -85,7 +82,7 @@ RSpec.configure do |config|
   end
 
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
+  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
 
   # If you're not using ActiveRecord, or you'd prefer not to run each of your
   # examples within a transaction, remove the following line or assign false
