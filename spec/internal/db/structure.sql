@@ -1106,16 +1106,16 @@ ALTER SEQUENCE land.referers_referer_id_seq OWNED BY land.referers.referer_id;
 --
 
 CREATE VIEW land.response_times_by_path AS
- SELECT agg.path_id,
-    agg.path,
-    agg."avg response time (ms)"
+ SELECT path_id,
+    path,
+    "avg response time (ms)"
    FROM ( SELECT p.path_id,
             p.path,
             round(avg(pv.response_time), 3) AS "avg response time (ms)"
            FROM (land.pageviews pv
              JOIN land.paths p USING (path_id))
           GROUP BY p.path_id, p.path) agg
-  ORDER BY agg."avg response time (ms)" DESC;
+  ORDER BY "avg response time (ms)" DESC;
 
 
 --
@@ -1319,7 +1319,8 @@ CREATE TABLE land.visits (
     raw_query_string text,
     domain_id integer,
     unaltered_ingress_url text,
-    click_id text
+    click_id text,
+    post_visit_at timestamp(6) without time zone
 );
 
 
@@ -3017,6 +3018,7 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20251017171657'),
 ('20250922220507'),
 ('20250922195113'),
 ('20241218175001'),
