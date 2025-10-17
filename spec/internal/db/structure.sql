@@ -1320,7 +1320,7 @@ CREATE TABLE land.visits (
     domain_id integer,
     unaltered_ingress_url text,
     click_id text,
-    post_visit_at timestamp(6) without time zone
+    post_visit_at timestamp with time zone
 );
 
 
