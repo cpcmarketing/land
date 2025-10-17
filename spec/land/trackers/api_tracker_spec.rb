@@ -107,7 +107,9 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
 
       expect(visit.cookie_id).to eq(cookie_id)
       expect(visit.visit_id).to eq(visit_id)
-      expect(visit.referer.domain).to eq('veterandebtassistance.org')
+      expect(visit.post_visit_at).to_not be_nil
+      expect(visit.post_visit_at).to be_a(ActiveSupport::TimeWithZone)
+
       expect(visit.user_agent.user_agent).to eq(user_agent)
       expect(visit.user_agent.user_agent_type).to eq('user')
       expect(visit.user_agent.device).to eq('Unknown')
@@ -174,6 +176,7 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
 
       expect(visit.cookie_id).to eq(cookie_id)
       expect(visit.visit_id).to eq(visit_id)
+      expect(visit.post_visit_at).to be_nil
       expect(visit.referer).to eq(nil)
       expect(visit.user_agent.user_agent).to eq('user agent missing')
       expect(visit.user_agent.user_agent_type).to eq('user')
@@ -221,6 +224,8 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.cookie_id).to eq(cookie_id)
       expect(visit.visit_id).to eq(visit_id)
       expect(visit.referer.domain).to eq('veterandebtassistance.org')
+      expect(visit.post_visit_at).to_not be_nil
+      expect(visit.post_visit_at).to be_a(ActiveSupport::TimeWithZone)
       expect(visit.user_agent.user_agent).to eq(user_agent)
       expect(visit.user_agent.user_agent_type).to eq('user')
       expect(visit.user_agent.device).to eq('Unknown')

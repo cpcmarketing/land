@@ -65,6 +65,7 @@ module Land
         # Here we only invoke the visit attribution update if the request is a
         # visit API call
         if controller.request.path =~ VISIT_ENDPOINT_REGEX
+          set_post_visit_at
           maybe_set_raw_query_string
           maybe_set_unaltered_ingress_url
           maybe_set_visit_attribution
@@ -84,6 +85,12 @@ module Land
         retry if e.message == 'Validation failed: Visit has already been taken'
 
         raise e
+      end
+
+      def set_post_visit_at
+        return if @visit.post_visit_at.present?
+
+        @visit.post_visit_at = Time.now
       end
 
       def maybe_set_raw_query_string
@@ -250,7 +257,7 @@ module Land
         dark_mode = color_preference['is_dark_mode']
         light_mode = color_preference['is_light_mode']
         no_preference = color_preference['is_no_preference']
-      
+
         BrowserColorPreference.find_or_initialize_by(
           dark_mode: dark_mode,
           light_mode: light_mode,
