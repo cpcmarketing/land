@@ -1307,7 +1307,7 @@ ALTER SEQUENCE land.user_agents_user_agent_id_seq OWNED BY land.user_agents.user
 --
 
 CREATE TABLE land.visits (
-    visit_id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    visit_id uuid NOT NULL,
     cookie_id uuid NOT NULL,
     user_agent_id integer NOT NULL,
     attribution_id integer NOT NULL,
@@ -3018,6 +3018,7 @@ ALTER TABLE ONLY land.visits
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20251020190607'),
 ('20251017171657'),
 ('20250922220507'),
 ('20250922195113'),
