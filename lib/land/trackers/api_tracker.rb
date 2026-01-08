@@ -21,19 +21,20 @@ module Land
       end
 
       def load
-        last_visit = @last_visit ||= Land::Visit.where(cookie_id: @cookie)
+        @cookie_id        = request.params['cookie_id']
+        @visit_id         = request.params['visit_id']
+
+        last_visit = @last_visit ||= Land::Visit.where(cookie_id: @cookie_id)
                                                 .order(created_at: :desc)
                                                 .first
 
-        @cookie_id        = request.params['cookie_id']
-        @visit_id         = request.params['visit_id']
         @last_visit_time  = last_visit&.created_at
         @user_agent_hash  = Digest::SHA2.base64digest(raw_user_agent) if raw_user_agent
         @attribution_hash = attribution_hash
         @referer_hash     = Digest::SHA2.base64digest(referer_uri.to_s)
 
         begin
-          Cookie.find_or_create_by(cookie_id: @cookie_id)
+          Cookie.find_or_create_by!(cookie_id: @cookie_id)
         rescue ActiveRecord::RecordNotUnique
           retry
         rescue ActiveRecord::RecordInvalid => e
@@ -47,7 +48,7 @@ module Land
       # so we have to check the Land::Visit does not exist
       def record_visit
         @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
-          visit.attribution = attribution
+          visit.attribution      = attribution
           visit.cookie_id        = @cookie_id
           visit.referer_id       = referer&.id
           visit.user_agent_id    = user_agent&.id

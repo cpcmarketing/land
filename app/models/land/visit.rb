@@ -13,9 +13,5 @@ module Land
     has_many :pageviews, dependent: :destroy
 
     validates :visit_id, presence: true, uniqueness: true
-
-    after_initialize do
-      self.id ||= SecureRandom.uuid
-    end
   end
 end

@@ -8,9 +8,5 @@ module Land
     has_many :visits
 
     validates :cookie_id, presence: true, uniqueness: true
-
-    after_initialize do
-      self.id ||= SecureRandom.uuid
-    end
   end
 end
