@@ -5,7 +5,7 @@ module Land
     belongs_to :attribution
     belongs_to :cookie
     belongs_to :user_agent
-    belongs_to :domain
+    belongs_to :domain, optional: true
     belongs_to :referer, optional: true
 
     lookup_for :owner, class_name: Owner

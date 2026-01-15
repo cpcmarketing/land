@@ -101,7 +101,7 @@ module Land
     attr_reader :controller, :events, :visit
 
     delegate :request, :response, :session, to: :controller
-    delegate :headers, :path, :query_parameters, :referer, :remote_ip, to: :request
+    delegate :headers, :path, :query_parameters, :remote_ip, to: :request
 
     class << self
       def for(controller)
@@ -260,7 +260,7 @@ module Land
     end
 
     def new_visit?
-      @visit_id.nil? || Land.config.new_visit_reasons.map{ |reason| send(reason.to_sym) }.any?
+      @visit_id.nil? || Land.config.new_visit_reasons.map { |reason| send(reason.to_sym) }.any?
     end
 
     def external_referer?
