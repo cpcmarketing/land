@@ -21,19 +21,20 @@ module Land
       end
 
       def load
-        last_visit = @last_visit ||= Land::Visit.where(cookie_id: @cookie)
+        @cookie_id        = request.params['cookie_id']
+        @visit_id         = request.params['visit_id']
+
+        last_visit = @last_visit ||= Land::Visit.where(cookie_id: @cookie_id)
                                                 .order(created_at: :desc)
                                                 .first
 
-        @cookie_id        = request.params['cookie_id']
-        @visit_id         = request.params['visit_id']
         @last_visit_time  = last_visit&.created_at
         @user_agent_hash  = Digest::SHA2.base64digest(raw_user_agent) if raw_user_agent
         @attribution_hash = attribution_hash
         @referer_hash     = Digest::SHA2.base64digest(referer_uri.to_s)
 
         begin
-          Cookie.find_or_create_by(cookie_id: @cookie_id)
+          Cookie.find_or_create_by!(cookie_id: @cookie_id)
         rescue ActiveRecord::RecordNotUnique
           retry
         rescue ActiveRecord::RecordInvalid => e
@@ -47,12 +48,12 @@ module Land
       # so we have to check the Land::Visit does not exist
       def record_visit
         @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
-          visit.attribution = attribution
+          visit.attribution      = attribution
           visit.cookie_id        = @cookie_id
-          visit.referer_id       = referer&.id
-          visit.user_agent_id    = user_agent&.id
+          visit.referer_id       = referer&.referer_id
+          visit.user_agent_id    = user_agent&.user_agent_id
           visit.ip_address       = remote_ip
-          visit.domain_id        = request_domain&.id
+          visit.domain_id        = referer&.domain_id
           visit.raw_query_string = referer_uri&.query
           visit.click_id         = tracking_params['click_id']
         end
@@ -112,9 +113,9 @@ module Land
       end
 
       def maybe_set_visit_referer
-        return unless referer_uri.present? || @visit.referer.present?
+        return unless referer_uri.present?
 
-        @visit.referer_id = referer.id
+        @visit.referer_id = referer.referer_id
       end
 
       def maybe_set_user_agent
@@ -179,7 +180,7 @@ module Land
       # Access Methods --------------------------------------------
       def new_visit? = @visit.nil?
 
-      def params = request && request.params
+      def params = request&.params
       def page_view_query_string = params['page_view_query_string']
       def page_view_path = params['page_view_path']
 
@@ -200,7 +201,7 @@ module Land
 
       # Overriding Tracker#user_agent as it is set via params and not header in the API
       def user_agent
-        return @user_agent if @user_agent
+        return @user_agent if @user_agent && @user_agent.user_agent_type != Land.config.blank_user_agent_string
 
         user_agent = request.params['user_agent'] ||
                      Land.config.blank_user_agent_string
