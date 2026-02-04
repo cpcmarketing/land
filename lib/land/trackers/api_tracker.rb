@@ -55,6 +55,7 @@ module Land
           visit.domain_id        = request_domain&.id
           visit.raw_query_string = referer_uri&.query
           visit.click_id         = tracking_params['click_id']
+          visit.purpose_header   = purpose_header if purpose_header
         end
 
         # Api request race conditions mean that the visit may be created on a call
@@ -85,6 +86,24 @@ module Land
         retry if e.message == 'Validation failed: Visit has already been taken'
 
         raise e
+      end
+
+      # The purpose header is used to identify prefetch requests, which we need
+      # to account for in order for our data to be accurate.
+      def purpose_header
+        prefetch_header = %w[HTTP_SEC_PURPOSE HTTP_PURPOSE].map do |header|
+          return request.headers[header] if request.headers[header]&.to_s&.match?(/prefetch/i)
+
+          nil
+        end.compact.first
+
+        return prefetch_header if prefetch_header
+
+        %w[HTTP_SEC_PURPOSE HTTP_PURPOSE].map do |header|
+          return request.headers[header] if request.headers[header]&.to_s
+
+          nil
+        end.compact.first
       end
 
       def set_post_visit_at

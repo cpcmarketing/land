@@ -1,6 +1,12 @@
+\restrict de4xM7AK3VbALLTz5dovCxohBMHdWjArlGfEnsCDQdJejSIuV1klUSg4aKo1gTz
+
+-- Dumped from database version 17.7 (Postgres.app)
+-- Dumped by pg_dump version 17.7 (Homebrew)
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -1320,7 +1326,8 @@ CREATE TABLE land.visits (
     domain_id integer,
     unaltered_ingress_url text,
     click_id text,
-    post_visit_at timestamp with time zone
+    post_visit_at timestamp with time zone,
+    purpose_header character varying
 );
 
 
@@ -2413,6 +2420,13 @@ CREATE INDEX "index_land.pageviews_on_created_at" ON land.pageviews USING btree 
 
 
 --
+-- Name: index_visits_on_purpose_header; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_visits_on_purpose_header ON land.visits USING btree (purpose_header);
+
+
+--
 -- Name: keywords__u_keyword; Type: INDEX; Schema: land; Owner: -
 --
 
@@ -3015,9 +3029,12 @@ ALTER TABLE ONLY land.visits
 -- PostgreSQL database dump complete
 --
 
+\unrestrict de4xM7AK3VbALLTz5dovCxohBMHdWjArlGfEnsCDQdJejSIuV1klUSg4aKo1gTz
+
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260204204804'),
 ('20251017171657'),
 ('20250922220507'),
 ('20250922195113'),
