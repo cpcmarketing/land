@@ -1,4 +1,4 @@
-\restrict de4xM7AK3VbALLTz5dovCxohBMHdWjArlGfEnsCDQdJejSIuV1klUSg4aKo1gTz
+\restrict Ud5p9UauPQal7XJXXEjLF9AQZd3aW1bKcbk80N2WpUMYFJn9rMJxdM0XQGd3phF
 
 -- Dumped from database version 17.7 (Postgres.app)
 -- Dumped by pg_dump version 17.7 (Homebrew)
@@ -1327,7 +1327,8 @@ CREATE TABLE land.visits (
     unaltered_ingress_url text,
     click_id text,
     post_visit_at timestamp with time zone,
-    purpose_header character varying
+    http_purpose_header character varying,
+    http_sec_purpose_header character varying
 );
 
 
@@ -2420,10 +2421,17 @@ CREATE INDEX "index_land.pageviews_on_created_at" ON land.pageviews USING btree 
 
 
 --
--- Name: index_visits_on_purpose_header; Type: INDEX; Schema: land; Owner: -
+-- Name: index_visits_on_http_purpose_header; Type: INDEX; Schema: land; Owner: -
 --
 
-CREATE INDEX index_visits_on_purpose_header ON land.visits USING btree (purpose_header);
+CREATE INDEX index_visits_on_http_purpose_header ON land.visits USING btree (http_purpose_header);
+
+
+--
+-- Name: index_visits_on_http_sec_purpose_header; Type: INDEX; Schema: land; Owner: -
+--
+
+CREATE INDEX index_visits_on_http_sec_purpose_header ON land.visits USING btree (http_sec_purpose_header);
 
 
 --
@@ -3029,7 +3037,7 @@ ALTER TABLE ONLY land.visits
 -- PostgreSQL database dump complete
 --
 
-\unrestrict de4xM7AK3VbALLTz5dovCxohBMHdWjArlGfEnsCDQdJejSIuV1klUSg4aKo1gTz
+\unrestrict Ud5p9UauPQal7XJXXEjLF9AQZd3aW1bKcbk80N2WpUMYFJn9rMJxdM0XQGd3phF
 
 SET search_path TO "$user", public;
 
