@@ -91,6 +91,79 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     }
   end
 
+  context 'land visits purpose_headers' do
+    let(:cookie_id) { SecureRandom.uuid }
+    let(:visit_id) { SecureRandom.uuid }
+
+    it 'is set when the header HTTP_SEC_PURPOSE is present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: { 'HTTP_SEC_PURPOSE' => 'prefetch' },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq(nil)
+      expect(visit.http_sec_purpose_header).to eq('prefetch')
+    end
+
+    it 'is set when the header HTTP_PURPOSE is present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: { 'HTTP_PURPOSE' => 'prefetch' },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq('prefetch')
+      expect(visit.http_sec_purpose_header).to eq(nil)
+    end
+
+    it 'is set when the header http_sec_purpose is present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: { 'http_sec_purpose' => 'prefetch' },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq(nil)
+      expect(visit.http_sec_purpose_header).to eq('prefetch')
+    end
+
+    it 'is set when the header http_purpose is present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: { 'http_purpose' => 'prefetch' },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq('prefetch')
+      expect(visit.http_sec_purpose_header).to eq(nil)
+    end
+
+    it 'sets both headers values if present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: {
+             'HTTP_PURPOSE' => 'other-purpose',
+             'HTTP_SEC_PURPOSE' => 'other-purpose'
+           },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq('other-purpose')
+      expect(visit.http_sec_purpose_header).to eq('other-purpose')
+    end
+
+    it 'sets both headers to nil if not present' do
+      post "/api/v1/visit?#{query_string}",
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq(nil)
+      expect(visit.http_sec_purpose_header).to eq(nil)
+    end
+  end
+
   context 'when the request is successful and /api/v1/visit is the first request' do
     let(:cookie_id) { SecureRandom.uuid }
     let(:visit_id) { SecureRandom.uuid }

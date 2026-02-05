@@ -47,14 +47,16 @@ module Land
       # so we have to check the Land::Visit does not exist
       def record_visit
         @visit = Visit.find_or_initialize_by(visit_id: @visit_id) do |visit|
-          visit.attribution = attribution
-          visit.cookie_id        = @cookie_id
-          visit.referer_id       = referer&.id
-          visit.user_agent_id    = user_agent&.id
-          visit.ip_address       = remote_ip
-          visit.domain_id        = request_domain&.id
-          visit.raw_query_string = referer_uri&.query
-          visit.click_id         = tracking_params['click_id']
+          visit.attribution             = attribution
+          visit.cookie_id               = @cookie_id
+          visit.referer_id              = referer&.id
+          visit.user_agent_id           = user_agent&.id
+          visit.ip_address              = remote_ip
+          visit.domain_id               = request_domain&.id
+          visit.raw_query_string        = referer_uri&.query
+          visit.click_id                = tracking_params['click_id']
+          visit.http_purpose_header     = request.headers['HTTP_PURPOSE']     || request.headers['http_purpose']
+          visit.http_sec_purpose_header = request.headers['HTTP_SEC_PURPOSE'] || request.headers['http_sec_purpose']
         end
 
         # Api request race conditions mean that the visit may be created on a call
