@@ -117,6 +117,28 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.http_sec_purpose_header).to eq(nil)
     end
 
+    it 'is set when the header http_sec_purpose is present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: { 'http_sec_purpose' => 'prefetch' },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq(nil)
+      expect(visit.http_sec_purpose_header).to eq('prefetch')
+    end
+
+    it 'is set when the header http_purpose is present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: { 'http_purpose' => 'prefetch' },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq('prefetch')
+      expect(visit.http_sec_purpose_header).to eq(nil)
+    end
+
     it 'sets both headers values if present' do
       post "/api/v1/visit?#{query_string}",
            headers: {
