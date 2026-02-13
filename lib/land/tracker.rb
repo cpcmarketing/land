@@ -112,8 +112,8 @@ module Land
         # override
         type = 'user' if controller.request.query_parameters.with_indifferent_access.slice(*TRACKING_KEYS).any?
 
-        # match on versioned APIs, which serve the frontend
-        type = 'api' if controller.request.path =~ %r{^/api/v}
+        # match on versioned APIs, which serve the frontend, or all requests if configured for api tracking only
+        type = 'api' if controller.request.path =~ %r{^/api/v} || Land.config.api_tracking_only
 
         "Land::Trackers::#{type.classify}Tracker".constantize.new(controller)
       end
