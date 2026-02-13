@@ -55,7 +55,7 @@ module Land
           visit.domain_id               = request_domain&.id
           visit.raw_query_string        = referer_uri&.query
           visit.click_id                = tracking_params['click_id']
-          visit.http_purpose_header     = request.headers['HTTP_PURPOSE']     || request.headers['http_purpose']
+          visit.http_purpose_header     = purpose_header
           visit.http_sec_purpose_header = request.headers['HTTP_SEC_PURPOSE'] || request.headers['http_sec_purpose']
         end
 
@@ -87,6 +87,13 @@ module Land
         retry if e.message == 'Validation failed: Visit has already been taken'
 
         raise e
+      end
+
+      # the purpose header is used to indicate in prefetch traffic
+      def purpose_header
+        request.headers['HTTP_PURPOSE']     || request.headers['http_purpose']   || # google header
+          request.headers['HTTP_X_PURPOSE'] || request.headers['http_x_purpose'] || # meta browser header
+          request.headers['HTTP_X_MOZ']     || request.headers['http_x_moz']        # mozilla browser header
       end
 
       def set_post_visit_at

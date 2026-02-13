@@ -106,6 +106,28 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
       expect(visit.http_sec_purpose_header).to eq('prefetch')
     end
 
+    it 'is set when the header X-Purpose (meta browser) is present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: { 'X-Purpose' => 'preview' },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq('preview')
+      expect(visit.http_sec_purpose_header).to eq(nil)
+    end
+
+    it 'is set when the header X-Moz (meta browser) is present' do
+      post "/api/v1/visit?#{query_string}",
+           headers: { 'X-Moz' => 'preview' },
+           params: body,
+           as: :json
+
+      visit = Land::Visit.first
+      expect(visit.http_purpose_header).to eq('preview')
+      expect(visit.http_sec_purpose_header).to eq(nil)
+    end
+
     it 'is set when the header HTTP_PURPOSE is present' do
       post "/api/v1/visit?#{query_string}",
            headers: { 'HTTP_PURPOSE' => 'prefetch' },
