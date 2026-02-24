@@ -601,6 +601,34 @@ RSpec.describe 'Land::Trackers::ApiTracker', type: :request do
     end
   end
 
+  context 'when invalid UUIDs are sent in' do
+    context 'for cookie_id' do
+      let(:cookie_id) { '' }
+      let(:visit_id) { SecureRandom.uuid }
+
+      it 'should not create a visit or cookie' do
+        post "/api/v1/visit?#{query_string}", params: body,
+                                              as: :json
+
+        expect(Land::Visit.count).to eq(0)
+        expect(Land::Cookie.count).to eq(0)
+      end
+    end
+
+    context 'for visit_id' do
+      let(:cookie_id) { SecureRandom.uuid }
+      let(:visit_id) { '' }
+
+      it 'should not create a visit' do
+        post "/api/v1/visit?#{query_string}", params: body,
+                                              as: :json
+
+        expect(Land::Visit.count).to eq(0)
+        expect(Land::Cookie.count).to eq(1)
+      end
+    end
+  end
+
   context 'two visits with different device resolutions' do
     context 'and it update the device resolution when the device resolutions are different' do
       let(:cookie_id) { SecureRandom.uuid }
