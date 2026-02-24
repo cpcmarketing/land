@@ -1,5 +1,3 @@
-\restrict hCZStYqohe8uw6LDSx8BiBZlSGg0lM34PUxXJDYMCdgE2w8UjvOYSdgvmWiZX3m
-
 -- Dumped from database version 17.7 (Postgres.app)
 -- Dumped by pg_dump version 17.7 (Homebrew)
 
@@ -3037,8 +3035,6 @@ ALTER TABLE ONLY land.visits
 -- PostgreSQL database dump complete
 --
 
-\unrestrict hCZStYqohe8uw6LDSx8BiBZlSGg0lM34PUxXJDYMCdgE2w8UjvOYSdgvmWiZX3m
-
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
@@ -3059,4 +3055,3 @@ INSERT INTO "schema_migrations" (version) VALUES
 ('20201024041516'),
 ('20200724201945'),
 ('20200103012916');
-
