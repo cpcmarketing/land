@@ -1,5 +1,3 @@
-\restrict Ud5p9UauPQal7XJXXEjLF9AQZd3aW1bKcbk80N2WpUMYFJn9rMJxdM0XQGd3phF
-
 -- Dumped from database version 17.7 (Postgres.app)
 -- Dumped by pg_dump version 17.7 (Homebrew)
 
@@ -433,7 +431,7 @@ ALTER SEQUENCE land.contents_content_id_seq OWNED BY land.contents.content_id;
 --
 
 CREATE TABLE land.cookies (
-    cookie_id uuid DEFAULT public.uuid_generate_v4() NOT NULL
+    cookie_id uuid NOT NULL
 );
 
 
@@ -1313,7 +1311,7 @@ ALTER SEQUENCE land.user_agents_user_agent_id_seq OWNED BY land.user_agents.user
 --
 
 CREATE TABLE land.visits (
-    visit_id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    visit_id uuid NOT NULL,
     cookie_id uuid NOT NULL,
     user_agent_id integer NOT NULL,
     attribution_id integer NOT NULL,
@@ -3037,11 +3035,10 @@ ALTER TABLE ONLY land.visits
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Ud5p9UauPQal7XJXXEjLF9AQZd3aW1bKcbk80N2WpUMYFJn9rMJxdM0XQGd3phF
-
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260211170328'),
 ('20260204204804'),
 ('20251017171657'),
 ('20250922220507'),
@@ -3058,4 +3055,3 @@ INSERT INTO "schema_migrations" (version) VALUES
 ('20201024041516'),
 ('20200724201945'),
 ('20200103012916');
-
